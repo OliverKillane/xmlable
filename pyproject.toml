@@ -16,10 +16,15 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+dependencies = [
+    "lxml==4.9.2",
+    "lxml-stubs==0.4.0",
+]
 
 [project.urls]
 "Homepage" = "https://github.com/OliverKillane/xmlable"
 "Bug Tracker" = "https://github.com/OliverKillane/xmlable/issues"
+
 
 [project.optional-dependencies]
 dev = [
@@ -31,6 +36,7 @@ dev = [
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "-ra -q"
+pythonpath = "src"
 testpaths = [
     "tests",
 ]
