@@ -1,30 +1,54 @@
-from xmlable import *
+from xmlable import xmlify
+from dataclasses import dataclass
 
 
 @xmlify
-class AA:
+@dataclass
+class Test:
+    c: dict[int, str]
     a: int = 3
-    b: float
-    c: str = "helllloooo"
+    b: float = 3.22
 
 
 @xmlify
-class BB:
-    z: AA
-    j: bool
+@dataclass
+class Bob:
+    c: list[dict[int, tuple[str, str]]]
 
 
-@xmlify_main("this file!")
-class CC:
-    y: float
-    x: int
+@xmlify
+@dataclass
+class Zoom:
+    j: Test
+    c: int
+    x: Bob
 
 
-def p(g):
-    for x in g:
-        print(x)
+@xmlify
+@dataclass
+class Based:
+    a: dict[int, int]
 
 
-print(BB.get_xmlify())
+@xmlify
+@dataclass
+class BCont:
+    b: int | str
 
-p(BB.get_xmlify().generate_xml(0))
+
+# x = Zoom(j=Test({1: 2}, 2), c=4, x=Bob(c=[{3: ("aaaa", "bbbb")}]))
+
+
+@xmlify
+@dataclass
+class Test1:
+    a: int = 3
+
+
+x = Test1()
+
+for l in x.xml_template_values("basic", "basic"):
+    print(l)
+
+for l in Test1.xsd_conf("basic"):
+    print(l)

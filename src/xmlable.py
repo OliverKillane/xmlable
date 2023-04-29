@@ -1,11 +1,20 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, fields, is_dataclass
 from abc import ABC, abstractmethod
 import sys
-from typing import Any, Callable, Generator, TypeVar, get_args
-from types import FunctionType
-from inspect import getmembers, getmodule, isclass, cleandoc, stack
+from typing import (
+    Any,
+    Callable,
+    Generator,
+    TypeVar,
+    dataclass_transform,
+    get_args,
+)
+from types import UnionType, NoneType
 from lxml.objectify import ObjectifiedElement
-from lxml.etree import tostring
+
+# Constants
+GNS_POST = "xsd:"
+GNS_PRE = ":xsd"
 
 # Utilities
 T = TypeVar("T")
@@ -23,541 +32,467 @@ def some_or_apply(data: N, fn: Callable[[N], M], alt: M):
     return fn(data) if data is not None else alt
 
 
-# Exceptions
+def get(obj: Any, attr: str) -> Any:
+    return obj.__getattribute__(attr)
 
 
-class NotAClassError(Exception):
-    def __init__(self, attempted: object):
-        message = (
-            f"{attempted} is not a class, so cannot have xmlconfig derived"
-        )
-        super(NotAClassError, self).__init__(message)
+def typename(t: type) -> str:
+    return t.__name__
 
 
-class MemberNoType(Exception):
-    def __init__(self, classname: str, member: str, value: Any):
-        message = f"{classname}.{member} has value {value}, but no type from which to derive xml config. In class {classname}, use {member}: <type> = {value}"
-        super(MemberNoType, self).__init__(message)
-
-
-class CannotFindMember(Exception):
-    def __init__(
-        self, parent: ObjectifiedElement, membername: str, suggestion: str
-    ):
-        message = f"Could not find {membername} in {parent.tag}:\n{tostring(parent, pretty_print=True)!r}\n Should contain an element like: {suggestion}"
-        super(CannotFindMember, self).__init__(message)
-
-
-class SpuriousTag(Exception):
-    def __init__(
-        self, parent_name: str, collectionkind: str, tag: str, expected_tag: str
-    ):
-        message = f"Found tag {tag} in map {parent_name}, but all items in the {collectionkind} should be in elements with name {expected_tag}"
-        super(SpuriousTag, self).__init__(message)
-
-
-class UnsupportedType(Exception):
-    def __init__(self, type_name):
-        message = (
-            f"There is no XMLify implementation for {stringify_type(type_name)}"
-        )
-        super(UnsupportedType, self).__init__(message)
-
-
-def stringify_type(t: type) -> str:
-    args = get_args(t)
-    if len(args) == 0:
-        return t.__name__
-    else:
-        arg_str: str = ", ".join([stringify_type(arg) for arg in args])
-        return f"{t.__name__}[{arg_str}]"
-
-
-class GenericMemberUnsupported(Exception):
-    def __init__(self, classname: str, member_name: str, member_type: type):
-        message = f"Generic User Classes such are not supported yet, hence {classname} cannot have member {member_name}: {stringify_type(member_type)}"
-        super(GenericMemberUnsupported, self).__init__(message)
-
-
-class GenericClassUnsupported(Exception):
-    def __init__(self, classname: str, class_type: type):
-        message = f"Generic user classes are not supported yet, hence class {classname} cannot have type {stringify_type(class_type)}"
-        super(GenericClassUnsupported, self).__init__(message)
-
-
-# XSD/XML object wrappers
 def indent(depth: int) -> str:
     return " " * 2 * depth
 
 
-class XSDObject(ABC):
+# Object wrapping
+def stringify_mods(mods: dict[str, Any]) -> str:
+    return "".join(f' {key}="{val}"' for key, val in mods.items())
+
+
+def xcomment(txt: str) -> str:
+    return f"<!-- {txt} -->"
+
+
+class XObject(ABC):
+    """Any XObject wraps the xsd generation,
+    We can map types to XObjects to get the xsd, template xml, etc
+    """
+
     @abstractmethod
-    def generate_xsd(self, depth: int) -> Generator[str, None, None]:
-        """
-        returns the set of type dependencies (other required complextypes
-        from classes), and a generator to yield lines of xsd
-        """
+    def xsd_out(
+        self, name: str, depth: int, mods: dict[str, Any] = {}
+    ) -> Generator[str, None, None]:
         pass
 
     @abstractmethod
-    def generate_xml(self, depth: int) -> Generator[str, None, None]:
-        """
-        Yields lines for generated xml (template)
-        """
+    def xml_out(
+        self, name: str, depth: int, val: Any | None
+    ) -> Generator[str, None, None]:
         pass
 
     @abstractmethod
-    def parse_xml(self, parent: ObjectifiedElement) -> Any:
-        """
-        Parses xml to return the data type contained
-        """
+    def xml_in(self, obj: ObjectifiedElement) -> Any:
         pass
 
 
 @dataclass
-class BasicElement(XSDObject):
-    """
-    A basic element for included integer, float, string types
-    """
+class BasicObj(XObject):
+    type_str: str
+    convert_fn: Callable[[Any], str]
+    parse_fn: Callable[[ObjectifiedElement], Any]
 
-    name: str
-    data_type: str
-    parse_fn: Callable[[str], Any]
-    default_value: str | None = None
+    def xsd_out(
+        self, name: str, depth: int, mods: dict[str, Any] = {}
+    ) -> Generator[str, None, None]:
+        yield f'{indent(depth)}<{GNS_POST}element name="{name}" type="{self.type_str}"{stringify_mods(mods)}/>'
 
-    def generate_xsd(self, depth: int) -> Generator[str, None, None]:
-        yield f'{indent(depth)}<element name="{self.name}" type="{self.data_type}"/>'
+    def xml_out(
+        self, name: str, depth: int, val: Any | None
+    ) -> Generator[str, None, None]:
+        yield f'{indent(depth)}<{name}>{some_or_apply(val, self.convert_fn, f" !!Fill with a {self.type_str}!! ")}</{name}>'
 
-    def _xml_suggestion(self) -> str:
-        value_text: str = some_or(self.default_value, "!FILL ME!")
-        return f"<{self.name}> {value_text} <{self.name}/>"
+    def xml_in(self, obj: ObjectifiedElement) -> Any:
+        return self.parse_fn(obj)
 
-    def generate_xml(self, depth: int) -> Generator[str, None, None]:
-        yield indent(depth) + self._xml_suggestion()
 
-    def parse_xml(self, parent: ObjectifiedElement) -> Any:
-        obj = parent.find(self.name)
-        if obj is None:
-            raise CannotFindMember(parent, self.name, self._xml_suggestion())
+@dataclass
+class ListObj(XObject):
+    item_xobject: XObject
+    list_elem_name: str = "listitem"
+
+    def xsd_out(
+        self, name: str, depth: int, mods: dict[str, Any] = {}
+    ) -> Generator[str, None, None]:
+        yield f'{indent(depth)}<{GNS_POST}element name="{name}"{stringify_mods(mods)}>'
+        yield f'{indent(depth + 1)}<{GNS_POST}complexType> {xcomment("this is a list!")}'
+        yield f"{indent(depth + 2)}<{GNS_POST}sequence>"
+        yield from self.item_xobject.xsd_out(
+            self.list_elem_name,
+            depth + 3,
+            {"minOccurs": 0, "maxOccurs": "unbounded"},
+        )
+        yield f"{indent(depth + 2)}</{GNS_POST}sequence>"
+        yield f"{indent(depth + 1)}</{GNS_POST}complexType>"
+        yield f"{indent(depth)}</{GNS_POST}element>"
+
+    def xml_out(
+        self, name: str, depth: int, val: list[Any] | None
+    ) -> Generator[str, None, None]:
+        yield f"{indent(depth)}<{name}>"
+        if val is not None and len(val) > 0:
+            for item_val in val:
+                yield from self.item_xobject.xml_out(
+                    self.list_elem_name, depth + 1, item_val
+                )
         else:
-            return self.parse_fn(obj)
+            yield from self.item_xobject.xml_out(
+                self.list_elem_name, depth + 1, None
+            )
+        yield f"{indent(depth)}</{name}>"
 
-
-class Sequence(XSDObject):
-    """
-    Wrapper for an xsd sequence
-    - takes variable args (a tuple)
-    - returns a tuple of objects parsed
-    """
-
-    def __init__(self, *args: XSDObject):
-        self.children: tuple[XSDObject, ...] = args
-
-    def generate_xsd(self, depth: int) -> Generator[str, None, None]:
-        yield f"{indent(depth)}<sequence>"
-        for child in self.children:
-            for line in child.generate_xsd(depth + 1):
-                yield line
-        yield f"{indent(depth)}</sequence>"
-
-    def generate_xml(self, depth: int) -> Generator[str, None, None]:
-        """Yields lines for generated xml (template)"""
-        for child in self.children:
-            for line in child.generate_xml(depth):
-                yield line
-
-    def parse_xml(self, parent: ObjectifiedElement) -> tuple[Any, ...]:
-        return (*(child.parse_xml(parent) for child in self.children),)
+    def xml_in(self, obj: ObjectifiedElement) -> list[Any]:
+        parsed = []
+        for child in obj.getchildren():
+            if child.tag != self.list_elem_name:
+                assert False, "This should be here!"
+            else:
+                parsed.append(self.item_xobject.xml_in(child))
+        return parsed
 
 
 @dataclass
-class Comment(XSDObject):
-    comment: str
+class StructObj(XObject):
+    objects: list[tuple[str, XObject]]
 
-    def generate_xsd(self, depth: int) -> Generator[str, None, None]:
-        yield f"{indent(depth)}<!-- {self.comment} -->"
+    def xsd_out(
+        self, name: str, depth: int, mods: dict[str, Any] = {}
+    ) -> Generator[str, None, None]:
+        yield f'{indent(depth)}<{GNS_POST}element name="{name}"{stringify_mods(mods)}>'
+        yield f"{indent(depth + 2)}<{GNS_POST}sequence>"
+        for member, xobj in self.objects:
+            yield from xobj.xsd_out(member, depth + 3)
+        yield f"{indent(depth + 2)}</{GNS_POST}sequence>"
+        yield f"{indent(depth)}</{GNS_POST}element>"
 
-    def generate_xml(self, depth: int) -> Generator[str, None, None]:
-        yield f"{indent(depth)}<!-- (From XSD) {self.comment} -->"
+    def xml_out(
+        self, name: str, depth: int, val: tuple[Any, ...] | None
+    ) -> Generator[str, None, None]:
+        yield f"{indent(depth)}<{name}>"
+        if val is None:
+            for member, xobj in self.objects:
+                yield from xobj.xml_out(member, depth + 1, None)
+        elif len(val) != len(self.objects):
+            assert False, "must be same"
+        else:
+            for (member, xobj), v in zip(self.objects, val):
+                yield from xobj.xml_out(member, depth + 1, v)
+        yield f"{indent(depth)}</{name}>"
 
-    def parse_xml(self, _: ObjectifiedElement) -> None:
+    def xml_in(self, obj: ObjectifiedElement) -> list[tuple[str, Any]]:
+        parsed = []
+        for child, (name, xobj) in zip(obj.getchildren(), self.objects):
+            if child.tag != name:
+                assert False, "Must be name"
+            parsed.append((name, xobj.xml_in(child)))
+        return parsed
+
+
+class TupleObj(XObject):
+    def __init__(
+        self,
+        objects: tuple[XObject, ...],
+        elem_gen: Callable[[int], str] = lambda i: f"tupleitem{i}",
+    ):
+        self.elem_gen = elem_gen
+        self.struct: StructObj = StructObj(
+            [(self.elem_gen(i), xobj) for i, xobj in enumerate(objects)]
+        )
+
+    def xsd_out(
+        self, name: str, depth: int, mods: dict[str, Any] = {}
+    ) -> Generator[str, None, None]:
+        yield from self.struct.xsd_out(name, depth, mods)
+
+    def xml_out(
+        self, name: str, depth: int, val: tuple[Any, ...] | None
+    ) -> Generator[str, None, None]:
+        yield from self.struct.xml_out(name, depth, val)
+
+    def xml_in(self, obj: ObjectifiedElement) -> tuple[Any, ...]:
+        # Assumes the objects are in the correct order
+        return list(zip(*self.struct.xml_in(obj)))[1]
+
+
+class SetOBj(XObject):
+    def __init__(self, inner: XObject, elem_name: str = "setitem"):
+        self.list = ListObj(inner, elem_name)
+
+    def xsd_out(
+        self, name: str, depth: int, mods: dict[str, Any] = {}
+    ) -> Generator[str, None, None]:
+        yield from self.list.xsd_out(name, depth, mods)
+
+    def xml_out(
+        self, name: str, depth: int, val: set[Any] | None
+    ) -> Generator[str, None, None]:
+        yield from self.list.xml_out(
+            name, depth, some_or_apply(val, list, None)
+        )
+
+    def xml_in(self, obj: ObjectifiedElement) -> set[Any]:
+        parsed: set[Any] = {}
+        for item in self.list.xml_in(obj):
+            if item in parsed:
+                assert False, "cannot already be present"
+            parsed.add(item)
+        return parsed
+
+
+@dataclass
+class DictObj(XObject):
+    key_xobject: XObject
+    val_xobject: XObject
+    key_name: str = "key"
+    val_name: str = "val"
+    item_name: str = "dictitem"
+
+    def xsd_out(
+        self, name: str, depth: int, mods: dict[str, Any] = {}
+    ) -> Generator[str, None, None]:
+        yield f'{indent(depth)}<{GNS_POST}element name="{name}"{stringify_mods(mods)}>'
+        yield f'{indent(depth + 1)}<{GNS_POST}complexType> {xcomment("this is a dictionary!")}'
+        yield f"{indent(depth + 2)}<{GNS_POST}sequence>"
+        yield f'{indent(depth + 3)}<{GNS_POST}element name="{self.item_name}" minOccurs="0" maxOccurs="unbounded">'
+        yield f"{indent(depth + 4)}<{GNS_POST}sequence>"
+        yield from self.key_xobject.xsd_out(self.key_name, depth + 5)
+        yield from self.val_xobject.xsd_out(self.val_name, depth + 5)
+        yield f"{indent(depth + 4)}</{GNS_POST}sequence>"
+        yield f"{indent(depth + 3)}</{GNS_POST}element>"
+        yield f"{indent(depth + 2)}</{GNS_POST}sequence>"
+        yield f"{indent(depth + 1)}</{GNS_POST}complexType>"
+        yield f"{indent(depth)}</{GNS_POST}element>"
+
+    def xml_out(
+        self, name: str, depth: int, val: dict[Any, Any] | None
+    ) -> Generator[str, None, None]:
+        yield f"{indent(depth)}<{name}>"
+        if val is not None and len(val) > 0:
+            for k, v in val.items():
+                yield f"{indent(depth + 1)}<{self.item_name}>"
+                yield from self.key_xobject.xml_out(self.key_name, depth + 2, k)
+                yield from self.val_xobject.xml_out(self.val_name, depth + 2, v)
+                yield f"{indent(depth + 1)}</{self.item_name}>"
+        else:
+            yield f"{indent(depth + 1)}<{self.item_name}>"
+            yield from self.key_xobject.xml_out(self.key_name, depth + 2, None)
+            yield from self.val_xobject.xml_out(self.val_name, depth + 2, None)
+            yield f"{indent(depth + 1)}</{self.item_name}>"
+
+        yield f"{indent(depth)}</{name}>"
+
+    def xml_in(self, obj: ObjectifiedElement) -> dict[Any, Any]:
+        parsed = {}
+        for child in obj.getchildren():
+            if child.tag != self.item_name:
+                assert False, "This shouldnt be here!"
+            else:
+                k = self.key_xobject.xml_in(get(child, self.key_name))
+                v = self.val_xobject.xml_in(get(child, self.val_name))
+                parsed[k] = v
+                # Check for other tags? Fail better?
+        return parsed
+
+
+@dataclass
+class UnionObj(XObject):
+    xobjects: dict[type, XObject]
+    elem_gen: Callable[[type], str] = lambda t: f"variant{typename(t)}"
+
+    def xsd_out(
+        self, name: str, depth: int, mods: dict[str, Any] = {}
+    ) -> Generator[str, None, None]:
+        yield f'{indent(depth)}<{GNS_POST}element name="{name}"{stringify_mods(mods)}>'
+        yield f'{indent(depth + 1)}<{GNS_POST}complexType> {xcomment("this is a union!")}'
+        yield f"{indent(depth + 2)}<{GNS_POST}sequence>"
+        for t, xobj in self.xobjects.items():
+            yield from xobj.xsd_out(
+                self.elem_gen(t), depth + 3, {"minOccurs": 0}
+            )
+        yield f"{indent(depth + 2)}</{GNS_POST}sequence>"
+        yield f"{indent(depth + 1)}</{GNS_POST}complexType>"
+        yield f"{indent(depth)}</{GNS_POST}element>"
+
+    def xml_out(
+        self, name: str, depth: int, val: Any | None
+    ) -> Generator[str, None, None]:
+        yield f"{indent(depth)}<{name}>"
+        t = type(val)
+
+        # even if None is a variant, ignore it - no point in displaying
+        if t != NoneType and (val_xobj := self.xobjects.get(t)) is not None:
+            yield from val_xobj.xml_out(self.elem_gen(t), depth + 1, val)
+
+        yield f"{indent(depth)}<!-- This is a union, the following variants are possible"
+
+        for t, xobj in self.xobjects.items():
+            yield from xobj.xml_out(self.elem_gen(t), depth + 1, None)
+
+        yield f"{indent(depth)}-->"
+        yield f"{indent(depth)}</{name}>"
+
+    def xml_in(self, obj: ObjectifiedElement) -> Any:
+        for t, xobj in self.xobjects.items():
+            if (obj := get(self.elem_gen(t))) is not None:
+                return xobj.xml_in(obj)
+        else:
+            assert False, "Must have been part of the union"
+
+
+class NoneObj(XObject):
+    def xsd_out(
+        self, name: str, depth: int, mods: dict[str, Any] = {}
+    ) -> Generator[str, None, None]:
+        yield f'{indent(depth)}{xcomment("None type")}'
+
+    def xml_out(
+        self, name: str, depth: int, val: Any | None
+    ) -> Generator[str, None, None]:
+        yield f'{indent(depth)}{xcomment("None type")}'
+
+    def xml_in(self, obj: ObjectifiedElement) -> Any:
         return None
 
 
-@dataclass
-class Map(XSDObject):
-    """
-    An xml/xsd representation of a map with unique keys
-    - Order does not matter
-    - A single key and value are used for the inner type.
-    - Additional keys and values are used only in xml output
-    """
-
-    name: str
-    key: XSDObject
-    value: XSDObject
-    additional_items: tuple[tuple[XSDObject, XSDObject], ...] = ()
-    element_name: str = "entry"
-
-    def generate_xsd(self, depth: int) -> Generator[str, None, None]:
-        yield f'{indent(depth)}<element name="{self.name}">'
-        yield f"{indent(depth + 1)}<complexType>"
-        yield f"{indent(depth + 2)}<sequence>"
-        yield f'{indent(depth + 3)}<element name="{self.element_name}" minOccurs="0" maxOccurs="unbounded">'
-        yield f"{indent(depth + 4)}<complexType>"
-        for line in self.key.generate_xsd(depth + 5):
-            yield line
-        for line in self.value.generate_xsd(depth + 5):
-            yield line
-        yield f"{indent(depth + 4)}</complexType>"
-        yield f"{indent(depth + 3)}</element>"
-        yield f"{indent(depth + 2)}</sequence>"
-        yield f"{indent(depth + 1)}</complexType>"
-        yield f"{indent(depth)}</element>"
-
-    def generate_xml(self, depth: int) -> Generator[str, None, None]:
-        yield f"{indent(depth)}<{self.name}>"
-
-        # NOTE: Side rant about how many languages use '(' for expressions AND tuples
-        #       A single element tuple is (e,) an expression is (e)
-        #       When using * to expand the tuple below:
-        #       ((a,b), t := *((1,2)))  = ((a,b), 1, 2)
-        #       ((a,b), t := *((1,2),)) = ((a, b), (1, 2))
-        #       Because the 'length' of t is determined at runtime, I must be
-        #       careful to add an extra comma to prevent brackets being for
-        #       expression
-        #
-        #       Haskell has this, Rust has this (with cringe (T,) type syntax)
-        #       Especially cringe for rust as block are already expressions
-        #       '{ exp }', so why the need to overload '(' ')'  SILLY!
-        for k, v in (self.key, self.value), *self.additional_items:
-            yield f"{indent(depth+1)}<{self.element_name}>"
-            for line in k.generate_xml(depth + 2):
-                yield line
-            for line in v.generate_xml(depth + 2):
-                yield line
-            yield f"{indent(depth+1)}</{self.element_name}>"
-        yield f"{indent(depth)}</{self.name}>"
-
-    def parse_xml(self, parent: ObjectifiedElement) -> dict[Any, Any]:
-        obj = parent.find(self.name)
-        if obj is None:
-            suggestion: str = "\n" + "\n".join(self.generate_xml(0))
-            raise CannotFindMember(parent, self.name, suggestion)
-
-        items: dict[Any, Any] = {}
-        for child in obj.iterchildren():
-            if child.tag != self.element_name:
-                raise SpuriousTag(
-                    parent_name=self.name,
-                    collectionkind="dictionary",
-                    tag=child.tag,
-                    expected_tag=self.element_name,
-                )
-            else:
-                key = self.key.parse_xml(child)
-                value = self.value.parse_xml(child)
-                items[key] = value
-
-        return items
-
-
-@dataclass
-class List(XSDObject):
-    """
-    A list representation in xml
-    - Each item has 'element_name', internally they will wrap with the same name again
-      This is awkward, but because the children parse based on parent, and parents have identical
-      names, we must wrap twice (let item parser see from inner)
-    - Like with Map, additional defaults can be provided
-    """
-
-    name: str
-    item: XSDObject
-    element_name: str = "item_wrapper"
-    additional_items: tuple[XSDObject, ...] = ()
-
-    def generate_xsd(self, depth: int) -> Generator[str, None, None]:
-        yield f'{indent(depth)}<element name="{self.name}">'
-        yield f"{indent(depth + 1)}<complexType>"
-        yield f"{indent(depth + 2)}<sequence>"
-        yield f'{indent(depth + 3)}<element name="{self.element_name}" minOccurs="0" maxOccurs="unbounded">'
-        yield f"{indent(depth + 4)}<complexType>"
-        for line in self.item.generate_xsd(depth + 5):
-            yield line
-        yield f"{indent(depth + 4)}</complexType>"
-        yield f"{indent(depth + 3)}</element>"
-        yield f"{indent(depth + 2)}</sequence>"
-        yield f"{indent(depth + 1)}</complexType>"
-        yield f"{indent(depth)}</element>"
-
-    def generate_xml(self, depth: int) -> Generator[str, None, None]:
-        yield f"{indent(depth)}<{self.name}>"
-        yield f"{indent(depth+1)}<{self.element_name}>"
-        for item in self.item, *self.additional_items:
-            for line in item.generate_xml(depth + 2):
-                yield line
-        yield f"{indent(depth+1)}</{self.element_name}>"
-        yield f"{indent(depth)}</{self.name}>"
-
-    def parse_xml(self, parent: ObjectifiedElement) -> list[Any]:
-        obj = parent.find(self.name)
-        if obj is None:
-            suggestion: str = "\n" + "\n".join(self.generate_xml(0))
-            raise CannotFindMember(parent, self.name, suggestion)
-
-        items: list[Any] = []
-        for child in obj.iterchildren():
-            if child.tag != self.element_name:
-                raise SpuriousTag(
-                    parent_name=self.name,
-                    collectionkind="list",
-                    tag=child.tag,
-                    expected_tag=self.element_name,
-                )
-            else:
-                items.append(self.item.parse_xml(child))
-
-        return items
-
-
-@dataclass
-class ComplexTypeDecl(XSDObject):
-    name: str
-    members: Sequence
-
-    def generate_xsd(self, depth: int) -> Generator[str, None, None]:
-        yield f'{indent(depth)}<complexType name="{self.name}">'
-        for line in self.members.generate_xsd(depth + 1):
-            yield line
-        yield f"{indent(depth)}</complexType>"
-
-    def generate_xml(self, depth: int) -> Generator[str, None, None]:
-        for line in self.members.generate_xml(depth):
-            yield line
-
-    def parse_xml(self, parent: ObjectifiedElement) -> Any:
-        assert False, "Not Implemented yet"
-
-
-# Class metadata handling
-
-
-@dataclass
-class MemberMeta:
-    """
-    An easy wrapper of metadata for a class member (as used by ClassMeta)
-
-    Attributes:
-        doc: any comment associated with the member
-
-    """
-
-    name: str
-    type: type
-    default_value: Any | None
-
-    def __str__(self) -> str:
-        dval: str = some_or_apply(
-            self.default_value, lambda x: " = " + str(x), ""
-        )
-        return f"{self.name}: {self.type.__name__}{dval}"
-
-
-@dataclass
-class ClassMeta:
-    """
-    An easy wrapper of metadata for a class.
-
-    Attributes:
-        cls:     The class object/type
-        name:    String name of the class
-        supers:  The cuper classes (not including itself or object), in the order of inheritance/MRO
-        members: All type annotated attributes, in the order of declaration
-    """
-
-    cls: type
-    doc: str | None
-    name: str
-    supers: list[type]
-    members: list[MemberMeta]
-
-    def __str__(self) -> str:
-        members: str = "\n".join([f"\t{member}" for member in self.members])
-        supers: str = (
-            "(" + ", ".join([cls.__name__ for cls in self.supers]) + ")"
-            if len(self.supers) > 0
-            else ""
-        )
-        doc = f'\t"""{self.doc}"""\n' if self.doc is not None else ""
-        return f"class {self.name}{supers}:\n{doc}{members}"
-
-
-def get_metadata(cls: type) -> ClassMeta:
-    if not isclass(cls):
-        raise NotAClassError(cls)
-
-    name = cls.__name__
-    member_annos = cls.__annotations__
-    defined_members = {}
-    for member in getmembers(cls)[::-1]:
-        match member:
-            case (m, d) if type(d) != type and not m.startswith("__"):
-                # Do not add methods
-                if type(d) != FunctionType:
-                    defined_members[m] = d
-            case _:
-                break
-
-    # check none without annotations
-    for m, d in defined_members.items():
-        if m not in member_annos:
-            raise MemberNoType(classname=name, member=m, value=d)
-
-    members = []
-    for m, t in member_annos.items():
-        members.append(
-            MemberMeta(name=m, type=t, default_value=defined_members.get(m))
-        )
-
-    # using method resolution order to get supers
-    supers: list[type] = [
-        sc for sc in cls.__mro__ if sc != object and sc != cls
-    ]
-
-    doc: str | None = cls.__doc__
-    if doc is not None:
-        doc = cleandoc(doc)
-
-    return ClassMeta(cls, doc, name, supers, members)
-
-
-def is_xmlified_class(cls: type):
-    # TODO: Hacky and I dislike, but works
-    try:
-        cls.get_xmlify()
-        print(f"{cls.__name__} is xmlified!!!!!")
-        return True
-    except AttributeError:
-        print(f"{cls} is not xmlified")
-        return False
-
-
-def get_xsd_member(m: MemberMeta) -> XSDObject:
-    basic_types: dict[type, str] = {
-        int: "xs:integer",
-        str: "xs:string",
-        float: "xs:decimal",
-        bool: "xs:boolean",
+def gen_xobject(data_type: type, forward_dec: set[type]) -> XObject:
+    basic_types = {
+        int: (f"{GNS_POST}integer", str),
+        str: (f"{GNS_POST}string", str),
+        float: (f"{GNS_POST}decimal", str),
+        bool: (f"{GNS_POST}boolean", lambda b: "true" if b else "false"),
     }
 
-    if (type_name := basic_types.get(m.type)) is not None:
-        return BasicElement(
-            name=m.name,
-            data_type=type_name,
-            parse_fn=m.type,
-            default_value=m.default_value,
+    if (basic_entry := basic_types.get(data_type)) is not None:
+        type_str, convert_fn = basic_entry
+        return BasicObj(type_str, convert_fn, data_type)
+    elif data_type == NoneType:
+        return NoneObj()
+    elif isinstance(data_type, UnionType):
+        return UnionObj(
+            {t: gen_xobject(t, forward_dec) for t in get_args(data_type)}
         )
-    elif m.type == dict:
-        # Note: types are from __anotations__ and have not had args erased, so this pattern is irrefutable
-        (key_type, value_type) = get_args(m.type)
-
-        # default_value is of type dict so {} and has len
-        if m.default_value is None or len(m.default_value) == 0:
-            key_xsd: XSDObject = get_xsd_member(
-                MemberMeta(name="key", type=key_type, default_value=None)
-            )
-            value_xsd: XSDObject = get_xsd_member(
-                MemberMeta(name="value", type=value_type, default_value=None)
-            )
-            return Map(name=m.name, key=key_xsd, value=value_xsd)
-        else:
-            [(first_k, first_v), *kv_additions] = [
-                (
-                    get_xsd_member(
-                        MemberMeta(
-                            name="key", type=key_type, default_value=key_default
-                        )
-                    ),
-                    get_xsd_member(
-                        MemberMeta(
-                            name="value",
-                            type=value_type,
-                            default_value=value_default,
-                        )
-                    ),
-                )
-                for key_default, value_default in m.default_value.items()
-            ]
-
-            return Map(
-                name=m.name,
-                key=first_k,
-                value=first_v,
-                additional_items=tuple(kv_additions),
-            )
-    elif m.type == list:
-        (item_type,) = get_args(m.type)
-
-        if m.default_value is None or len(m.default_value) == 0:
-            item_xsd: XSDObject = get_xsd_member(
-                MemberMeta(name="item", type=item_type, default_value=None)
-            )
-            return List(name=m.name, item=item_xsd)
-        else:
-            [first_item, *item_additions] = [
-                get_xsd_member(
-                    MemberMeta(name="item", type=item_type, default_value=d_val)
-                )
-                for d_val in m.default_value
-            ]
-            return List(
-                name=m.name,
-                item=first_item,
-                additional_items=tuple(item_additions),
-            )
-    elif is_xmlified_class(m.type):
-        if len(get_args(m.type)) > 0:
-            # This case is not caught, but will eventually be using GenericMemberUnsupported
-            assert False, "TODO: fix this!"
-        # User class default values are unsupported
-        return BasicElement(
-            name=m.name,
-            data_type=m.type.__name__,
-            parse_fn=m.type.get_xmlify().parse_xml,  # type: ignore
-            default_value=None,
+    elif typename(data_type) == "list":
+        (item_type,) = get_args(data_type)
+        return ListObj(gen_xobject(item_type, forward_dec))
+    elif typename(data_type) == "dict":
+        key_type, val_type = get_args(data_type)
+        return DictObj(
+            gen_xobject(key_type, forward_dec),
+            gen_xobject(val_type, forward_dec),
         )
+    elif typename(data_type) == "tuple":
+        return TupleObj(
+            tuple(gen_xobject(t, forward_dec) for t in get_args(data_type))
+        )
+    elif typename(data_type) == "set":
+        (item_type,) = get_args(data_type)
+        return SetOBj(gen_xobject(item_type, forward_dec))
     else:
-        raise UnsupportedType(m.type)
+        if is_xmlified(data_type):
+            forward_dec.add(data_type)
+            return data_type.get_xobject()
+        else:
+            assert False, "Bad, type is not avail"
 
 
-def xmlify(cls):
-    cls_md = get_metadata(cls)
+def is_xmlified(cls):
+    return hasattr(cls, "xmlified")
 
-    def get_xmlify() -> XSDObject:
-        return ComplexTypeDecl(
-            name=cls_md.name,
-            members=Sequence(*(get_xsd_member(m) for m in cls_md.members)),
-        )
 
-    cls.get_xmlify = get_xmlify
+@dataclass_transform()
+def xmlify(cls: type) -> type:
+    if not is_dataclass(cls):
+        assert False, "must be a dataclass"
 
+    cls_name = cls.__name__
+    forward_decs = {cls}
+    meta_xobjects = [
+        (f, gen_xobject(f.type, forward_decs)) for f in fields(cls)
+    ]
+
+    class UserXObject(XObject):
+        def xsd_out(
+            self, name: str, depth: int, mods: dict[str, Any] = {}
+        ) -> Generator[str, None, None]:
+            yield f'{indent(depth)}<{GNS_POST}element name="{name}" type="{cls_name}"{stringify_mods(mods)} />'
+
+        def xml_out(
+            self, name: str, depth: int, val: Any | None
+        ) -> Generator[str, None, None]:
+            yield f"{indent(depth)}<{name}>"
+            if val is not None:
+                for m, xobj in meta_xobjects:
+                    yield from xobj.xml_out(m.name, depth + 1, get(val, m.name))
+            else:
+                for m, xobj in meta_xobjects:
+                    yield from xobj.xml_out(m.name, depth + 1, None)
+            yield f"{indent(depth)}</{name}>"
+
+        def xml_in(self, obj: ObjectifiedElement) -> Any:
+            parsed: dict[str, Any] = {}
+            for m, xobj in meta_xobjects:
+                if (m_obj := get(obj, m.name)) is not None:
+                    parsed[m.name] = xobj.xml_in(m_obj)
+                else:
+                    assert False, "member is not present!"
+            return cls(**parsed)
+
+    cls_xobject = UserXObject()
+
+    def xsd_forward(depth: int) -> Generator[str, None, None]:
+        yield f'{indent(depth)}<{GNS_POST}complexType name="{cls_name}">'
+        yield f"{indent(depth+1)}<{GNS_POST}sequence>"
+        for m, xobj in meta_xobjects:
+            yield from xobj.xsd_out(m.name, depth + 2, {})
+        yield f"{indent(depth+1)}</{GNS_POST}sequence>"
+        yield f"{indent(depth)}</{GNS_POST}complexType>"
+
+    def xsd_dependencies() -> set[type]:
+        return forward_decs
+
+    def get_xobject():
+        return cls_xobject
+
+    def xsd_conf(
+        schema_name: str,
+        xmlns: str = "http://www.w3.org/2001/XMLSchema",
+        options: dict[str, str] = {},
+        imports: dict[str, str] = {},
+    ) -> Generator[str, None, None]:
+        # yield '<?xml version="1.0" encoding="utf-8"?>'
+        options_str = "".join(f' {k}="{v}"' for k, v in options.items())
+        yield f'<{GNS_POST}schema xmlns{GNS_PRE}="{xmlns}"{options_str}>'
+        for ns, schloc in imports.items():
+            yield f'{indent(1)}<import namespace="{ns}" schemaLocation="{schloc}"/>'
+        yield f""
+
+        visited: set[type] = set()
+        dec_order: list[type] = []
+
+        def toposort(curr: type, visited: set[type], dec_order: list[type]):
+            visited.add(curr)
+            deps = curr.xsd_dependencies()
+            for d in deps:
+                if d not in visited:
+                    toposort(d, visited, dec_order)
+            dec_order.append(curr)
+
+        toposort(cls, visited, dec_order)
+
+        for dec in dec_order:
+            yield from dec.xsd_forward(1)
+            yield f""
+
+        yield from cls_xobject.xsd_out(schema_name, 1)
+        yield f"</{GNS_POST}schema>"
+
+    def xml_template(
+        schema_name: str, xmlns: str, val: Any | None = None
+    ) -> Generator[str, None, None]:
+        # yield f'<?xml version="1.0" encoding="utf-8"?>'
+        yield from cls_xobject.xml_out(schema_name, 0, val)
+
+    def xml_template_values(
+        self, schema_name: str, xmlns: str
+    ) -> Generator[str, None, None]:
+        return xml_template(schema_name, xmlns, self)
+
+    cls.xsd_forward = xsd_forward
+    cls.xsd_dependencies = xsd_dependencies
+    cls.get_xobject = get_xobject
+    cls.xsd_conf = xsd_conf
+    cls.xml_template = xml_template
+    cls.xmlified = True
+    setattr(
+        cls, "xml_template_values", xml_template_values
+    )  # needs to use self to get values
     return cls
-
-
-def xmlify_main(file):
-    def subfun(cls):
-        frm = stack()[1]
-        mod = getmodule(frm[0])
-        print(__name__)
-        for other_cls in getmembers(mod, predicate=isclass):
-            if is_xmlified_class(other_cls):
-                for x in other_cls.get_xmlify().generate_xsd(0):
-                    print(x)
-
-        print(get_metadata(cls))
-        print(f"FILE: {file}")
-
-        return cls
-
-    return subfun
