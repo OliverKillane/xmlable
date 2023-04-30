@@ -1,0 +1,11 @@
+<Config>
+  <date>31/02/2023</date>
+  <number_of_cores>48</number_of_cores>
+  <codes>
+    <listitem>101</listitem>
+    <listitem>345</listitem>
+    <listitem>42</listitem>
+    <listitem>67</listitem>
+  </codes>
+  <show_logs>false</show_logs>
+</Config>

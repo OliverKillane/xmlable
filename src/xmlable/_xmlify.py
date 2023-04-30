@@ -173,9 +173,7 @@ def xmlify(cls: type) -> type:
             yield from cls_xobject.xsd_out(schema_name, 1)
             yield f"</{GNS_POST}schema>"
 
-        def xml(
-            schema_name: str, val: Any | None = None
-        ) -> Generator[str, None, None]:
+        def xml(schema_name: str) -> Generator[str, None, None]:
             # yield f'<?xml version="1.0" encoding="utf-8"?>'
             yield from cls_xobject.xml_temp(schema_name, 0)
 

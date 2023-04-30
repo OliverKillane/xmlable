@@ -156,7 +156,6 @@ class ListObj(XObject):
     def xml_in(self, obj: ObjectifiedElement, ctx: XErrorCtx) -> list[Any]:
         parsed = []
         for i, child in enumerate(children(obj)):
-            print(str(child))
             if child.tag != self.list_elem_name:
                 raise XError(
                     short="Unexpected Tag",
@@ -184,10 +183,12 @@ class StructObj(XObject):
         self, name: str, depth: int, mods: dict[str, Any] = {}
     ) -> Generator[str, None, None]:
         yield f'{indent(depth)}<{GNS_POST}element name="{name}"{stringify_mods(mods)}>'
+        yield f"{indent(depth+ 1)}<{GNS_POST}complexType>"
         yield f"{indent(depth + 2)}<{GNS_POST}sequence>"
         for member, xobj in self.objects:
             yield from xobj.xsd_out(member, depth + 3)
         yield f"{indent(depth + 2)}</{GNS_POST}sequence>"
+        yield f"{indent(depth + 1)}</{GNS_POST}complexType>"
         yield f"{indent(depth)}</{GNS_POST}element>"
 
     def xml_temp(self, name: str, depth: int) -> Generator[str, None, None]:
@@ -407,7 +408,7 @@ class UnionObj(XObject):
         yield f"{indent(depth)}<!-- This is a union, the following variants are possible"
 
         for t, xobj in self.xobjects.items():
-            yield from xobj.xml_out(self.elem_gen(t), depth + 1, None)
+            yield from xobj.xml_temp(self.elem_gen(t), depth + 1)
 
         yield f"{indent(depth)}-->"
         yield f"{indent(depth)}</{name}>"

@@ -178,3 +178,19 @@ def test_basic_unions():
         t2_T1_none,
     ]:
         validate(test_obj)
+
+
+def test_advanced_test():
+    @xmlify
+    @dataclass
+    class Complex:
+        a: dict[tuple[int, str], list[tuple[dict[int, float | str], set[bool]]]]
+
+    c1 = Complex(
+        a={(3, "hello"): [({3: 0.4}, {True, False}), ({2: "str"}, {False})]}
+    )
+
+    x = "\n".join(Complex.xsd("bigschema"))
+    # assert False, x
+
+    validate(c1)

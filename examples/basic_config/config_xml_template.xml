@@ -1,0 +1,8 @@
+<Config>
+  <date> Fill me with an xsd:string </date>
+  <number_of_cores> Fill me with an xsd:integer </number_of_cores>
+  <codes><!-- This is a list -->
+    <listitem> Fill me with an xsd:integer </listitem>
+  </codes>
+  <show_logs> Fill me with an xsd:boolean </show_logs>
+</Config>

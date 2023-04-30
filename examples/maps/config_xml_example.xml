@@ -1,0 +1,44 @@
+<BigConfig>
+  <machine_ids>
+    <dictitem>
+      <key>
+        <location>apac</location>
+        <serv_name>abacus</serv_name>
+      </key>
+      <val>
+        <ip>71.35.186.234</ip>
+        <cores>24</cores>
+        <org_owner>
+          <variantint>2</variantint>
+        </org_owner>
+      </val>
+    </dictitem>
+    <dictitem>
+      <key>
+        <location>apac</location>
+        <serv_name>goat</serv_name>
+      </key>
+      <val>
+        <ip>75.174.245.110</ip>
+        <cores>34</cores>
+        <org_owner>
+          <variantint>2</variantint>
+        </org_owner>
+      </val>
+    </dictitem>
+    <dictitem>
+      <key>
+        <location>fr</location>
+        <serv_name>palm</serv_name>
+      </key>
+      <val>
+        <ip>58.175.90.125</ip>
+        <cores>78</cores>
+        <org_owner>
+          <variantNoneType/><!-- This is None -->
+        </org_owner>
+      </val>
+    </dictitem>
+  </machine_ids>
+  <show_logs>true</show_logs>
+</BigConfig>
