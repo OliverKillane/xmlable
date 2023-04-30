@@ -20,3 +20,7 @@ pytest  # to run tests
 ## XSD
 
 Using the [w3 schema spec](https://www.w3.org/TR/xmlschema11-1/).
+
+Notes:
+disallowed member names:
+comment
