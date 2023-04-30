@@ -1,6 +1,4 @@
 from dataclasses import dataclass
-from xmlable import xmlify
-from lxml import objectify
 from lxml.objectify import ObjectifiedElement
 from termcolor import colored
 
@@ -12,13 +10,16 @@ def trace_note(trace: list[str], arrow_c: str, node_c: str):
 
 
 @dataclass
-class ParseContext:
+class XErrorCtx:
     trace: list[str]
-    obj: ObjectifiedElement
+
+    def next(self, node: str):
+        return XErrorCtx(trace=self.trace + [node])
 
 
-class ParseError(Exception):
-    def __init__(self, short: str, what: str, why: str, ctx: ParseContext):
+# TODO: Custom traceback to point to location in the file
+class XError(Exception):
+    def __init__(self, short: str, what: str, why: str, ctx: XErrorCtx):
         super().__init__(colored(short, "red", attrs=["blink"]))
         self.add_note(colored("What:  " + what, "blue"))
         self.add_note(colored("Why:   " + why, "yellow"))
@@ -26,11 +27,3 @@ class ParseError(Exception):
             colored("Where: In XML: ", "magenta")
             + trace_note(ctx.trace, "light_magenta", "light_cyan")
         )
-
-
-raise ParseError(
-    short="No Element",
-    what="Could not find the element AAA",
-    why="Element is not present, but should be as per type",
-    ctx=ParseContext(trace=["a", "b", "c"], obj=None),
-)

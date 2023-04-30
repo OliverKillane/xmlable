@@ -12,7 +12,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Callable, Generator, Iterable, get_args
 
 from xmlable._utils import get, opt_get
-
+from xmlable._errors import XErrorCtx, XError
 
 GNS_POST = "xsd:"
 GNS_PRE = ":xsd"
@@ -63,12 +63,12 @@ class XObject(ABC):
 
     @abstractmethod
     def xml_out(
-        self, name: str, depth: int, val: Any
+        self, name: str, depth: int, val: Any, ctx: XErrorCtx
     ) -> Generator[str, None, None]:
         pass
 
     @abstractmethod
-    def xml_in(self, obj: ObjectifiedElement) -> Any:
+    def xml_in(self, obj: ObjectifiedElement, ctx: XErrorCtx) -> Any:
         pass
 
 
@@ -80,6 +80,7 @@ class BasicObj(XObject):
 
     type_str: str
     convert_fn: Callable[[Any], str]
+    validate_fn: Callable[[Any], bool]
     parse_fn: Callable[[ObjectifiedElement], Any]
 
     def xsd_out(
@@ -91,11 +92,18 @@ class BasicObj(XObject):
         yield f"{indent(depth)}<{name}> Fill me with an {self.type_str} </{name}>"
 
     def xml_out(
-        self, name: str, depth: int, val: Any
+        self, name: str, depth: int, val: Any, ctx: XErrorCtx
     ) -> Generator[str, None, None]:
+        if not self.validate_fn(val):
+            raise XError(
+                short="Invalid Data",
+                what=f"Could not validate {val} as a valid {self.type_str}",
+                why=f"Produced xml must be valid",
+                ctx=ctx,
+            )
         yield f"{indent(depth)}<{name}>{self.convert_fn(val)}</{name}>"
 
-    def xml_in(self, obj: ObjectifiedElement) -> Any:
+    def xml_in(self, obj: ObjectifiedElement, ctx: XErrorCtx) -> Any:
         return self.parse_fn(obj)
 
 
@@ -130,26 +138,38 @@ class ListObj(XObject):
         yield f"{indent(depth)}</{name}>"
 
     def xml_out(
-        self, name: str, depth: int, val: list[Any]
+        self, name: str, depth: int, val: list[Any], ctx: XErrorCtx
     ) -> Generator[str, None, None]:
         if len(val) > 0:
             yield f"{indent(depth)}<{name}>"
-            for item_val in val:
+            for i, item_val in enumerate(val):
                 yield from self.item_xobject.xml_out(
-                    self.list_elem_name, depth + 1, item_val
+                    self.list_elem_name,
+                    depth + 1,
+                    item_val,
+                    ctx.next(f"{self.list_elem_name}[{i}]"),
                 )
             yield f"{indent(depth)}</{name}>"
         else:
             yield f'{indent(depth)}<{name}/>{xcomment("Empty List!")}'
 
-    def xml_in(self, obj: ObjectifiedElement) -> list[Any]:
+    def xml_in(self, obj: ObjectifiedElement, ctx: XErrorCtx) -> list[Any]:
         parsed = []
-        for child in children(obj):
+        for i, child in enumerate(children(obj)):
             print(str(child))
             if child.tag != self.list_elem_name:
-                assert False, "This should be here!"
+                raise XError(
+                    short="Unexpected Tag",
+                    what=f"Found {self.list_elem_name} but found {child.tag}",
+                    why=f"This is a {self.struct_name} that contains 0..n elements of {self.list_elem_name} and no other elements",
+                    ctx=ctx,
+                )
             else:
-                parsed.append(self.item_xobject.xml_in(child))
+                parsed.append(
+                    self.item_xobject.xml_in(
+                        child, ctx.next(f"{self.list_elem_name}[{i}]")
+                    )
+                )
         return parsed
 
 
@@ -177,22 +197,36 @@ class StructObj(XObject):
         yield f"{indent(depth)}</{name}>"
 
     def xml_out(
-        self, name: str, depth: int, val: tuple[Any, ...]
+        self, name: str, depth: int, val: tuple[Any, ...], ctx: XErrorCtx
     ) -> Generator[str, None, None]:
         if len(val) != len(self.objects):
-            assert False, "must be same"
+            raise XError(
+                short="Incorrect Type",
+                what=f"You have provided the values {len(val)} values {val} for {name}, but {name} is a {self.struct_name} that takes only {len(self.objects)} values",
+                why=f"In order to generate xml, the values provided need to be the correct types",
+                ctx=ctx,
+            )
 
         yield f"{indent(depth)}<{name}>"
         for (member, xobj), v in zip(self.objects, val):
-            yield from xobj.xml_out(member, depth + 1, v)
+            yield from xobj.xml_out(member, depth + 1, v, ctx.next(member))
         yield f"{indent(depth)}</{name}>"
 
-    def xml_in(self, obj: ObjectifiedElement) -> list[tuple[str, Any]]:
+    def xml_in(
+        self, obj: ObjectifiedElement, ctx: XErrorCtx
+    ) -> list[tuple[str, Any]]:
         parsed = []
-        for child, (name, xobj) in zip(children(obj), self.objects):
+        for i, (child, (name, xobj)) in enumerate(
+            zip(children(obj), self.objects)
+        ):
             if child.tag != name:
-                assert False, "Must be name"
-            parsed.append((name, xobj.xml_in(child)))
+                raise XError(
+                    short="Incorrect Element Tag",
+                    what=f"While parsing {self.struct_name} {obj.tag} we expected element {i} to be {name}, but found {child.tag}",
+                    why=f"The xml representation for {self.struct_name} requires the correct names in the correct order",
+                    ctx=ctx,
+                )
+            parsed.append((name, xobj.xml_in(child, ctx.next(name))))
         return parsed
 
 
@@ -219,13 +253,15 @@ class TupleObj(XObject):
         yield from self.struct.xml_temp(name, depth)
 
     def xml_out(
-        self, name: str, depth: int, val: tuple[Any, ...]
+        self, name: str, depth: int, val: tuple[Any, ...], ctx: XErrorCtx
     ) -> Generator[str, None, None]:
-        yield from self.struct.xml_out(name, depth, val)
+        yield from self.struct.xml_out(name, depth, val, ctx)
 
-    def xml_in(self, obj: ObjectifiedElement) -> tuple[Any, ...]:
+    def xml_in(
+        self, obj: ObjectifiedElement, ctx: XErrorCtx
+    ) -> tuple[Any, ...]:
         # Assumes the objects are in the correct order
-        return list(zip(*self.struct.xml_in(obj)))[1]
+        return list(zip(*self.struct.xml_in(obj, ctx)))[1]
 
 
 class SetOBj(XObject):
@@ -243,15 +279,20 @@ class SetOBj(XObject):
         yield from self.list.xml_temp(name, depth)
 
     def xml_out(
-        self, name: str, depth: int, val: set[Any]
+        self, name: str, depth: int, val: set[Any], ctx: XErrorCtx
     ) -> Generator[str, None, None]:
-        yield from self.list.xml_out(name, depth, list(val))
+        yield from self.list.xml_out(name, depth, list(val), ctx)
 
-    def xml_in(self, obj: ObjectifiedElement) -> set[Any]:
+    def xml_in(self, obj: ObjectifiedElement, ctx: XErrorCtx) -> set[Any]:
         parsed: set[Any] = set()
-        for item in self.list.xml_in(obj):
+        for item in self.list.xml_in(obj, ctx):
             if item in parsed:
-                assert False, "cannot already be present"
+                raise XError(
+                    short="Duplicate item in Set",
+                    what=f"In {obj.tag} the item {item} is present more than once",
+                    why=f"A set can only contain unique items",
+                    ctx=ctx,
+                )
             parsed.add(item)
         return parsed
 
@@ -287,30 +328,54 @@ class DictObj(XObject):
     def xml_temp(self, name: str, depth: int) -> Generator[str, None, None]:
         yield f"{indent(depth)}<{name}>"
         yield f'{indent(depth + 1)}<{self.item_name}>{xcomment("This is a dictionary")}'
-        yield from self.key_xobject.xml_out(self.key_name, depth + 2, None)
-        yield from self.val_xobject.xml_out(self.val_name, depth + 2, None)
+        yield from self.key_xobject.xml_temp(self.key_name, depth + 2)
+        yield from self.val_xobject.xml_temp(self.val_name, depth + 2)
         yield f"{indent(depth + 1)}</{self.item_name}>"
         yield f"{indent(depth)}</{name}>"
 
     def xml_out(
-        self, name: str, depth: int, val: dict[Any, Any]
+        self, name: str, depth: int, val: dict[Any, Any], ctx: XErrorCtx
     ) -> Generator[str, None, None]:
         yield f"{indent(depth)}<{name}>"
+        item_ctx = ctx.next(self.item_name)
         for k, v in val.items():
             yield f"{indent(depth + 1)}<{self.item_name}>"
-            yield from self.key_xobject.xml_out(self.key_name, depth + 2, k)
-            yield from self.val_xobject.xml_out(self.val_name, depth + 2, v)
+            yield from self.key_xobject.xml_out(
+                self.key_name, depth + 2, k, item_ctx.next(name)
+            )
+            yield from self.val_xobject.xml_out(
+                self.val_name, depth + 2, v, item_ctx.next(name)
+            )
             yield f"{indent(depth + 1)}</{self.item_name}>"
         yield f"{indent(depth)}</{name}>"
 
-    def xml_in(self, obj: ObjectifiedElement) -> dict[Any, Any]:
+    def xml_in(self, obj: ObjectifiedElement, ctx: XErrorCtx) -> dict[Any, Any]:
         parsed = {}
         for child in children(obj):
             if child.tag != self.item_name:
-                assert False, "This shouldnt be here!"
+                raise XError(
+                    short="Invalid item in dictionary",
+                    what=f"An unexpected item with {child.tag} is in dictionary {obj.tag}",
+                    why=f"Each item must have tag {self.item_name} with children {self.key_name} and {self.val_name}",
+                    ctx=ctx,
+                )
             else:
-                k = self.key_xobject.xml_in(get(child, self.key_name))
-                v = self.val_xobject.xml_in(get(child, self.val_name))
+                child_ctx = ctx.next(self.item_name)
+                k = self.key_xobject.xml_in(
+                    get(child, self.key_name), child_ctx.next(self.key_name)
+                )
+                v = self.val_xobject.xml_in(
+                    get(child, self.val_name), child_ctx.next(self.val_name)
+                )
+
+                if k in parsed:
+                    raise XError(
+                        short="Duplicate key in dictionary",
+                        what=f"In dictionary {obj.tag} the key {k} is present more than once",
+                        why=f"Dictionaries must have unique keys",
+                        cts=ctx,
+                    )
+
                 parsed[k] = v
                 # Check for other tags? Fail better?
         return parsed
@@ -348,31 +413,51 @@ class UnionObj(XObject):
         yield f"{indent(depth)}</{name}>"
 
     def xml_out(
-        self, name: str, depth: int, val: Any
+        self, name: str, depth: int, val: Any, ctx: XErrorCtx
     ) -> Generator[str, None, None]:
         yield f"{indent(depth)}<{name}>"
         t = type(val)
 
         if (val_xobj := self.xobjects.get(t)) is not None:
-            yield from val_xobj.xml_out(self.elem_gen(t), depth + 1, val)
+            variant_name = self.elem_gen(t)
+            yield from val_xobj.xml_out(
+                variant_name, depth + 1, val, ctx.next(variant_name)
+            )
         else:
-            assert False, "Must be in the variants"
+            types = " | ".join(str(t) for t in self.xobjects.keys())
+            raise XError(
+                short=f"Datatype not in Union",
+                what=f"{name} is a union of {types}, which does not contain {t} (you provided: {val})",
+                why=f"... uuuh, its a union?",
+                ctx=ctx,
+            )
 
         yield f"{indent(depth)}</{name}>"
 
-    def xml_in(self, obj: ObjectifiedElement) -> Any:
-        # TODO: Make this nicer, dont recompute the dict every time?
+    def xml_in(self, obj: ObjectifiedElement, ctx: XErrorCtx) -> Any:
         named = {self.elem_gen(t): xobj for t, xobj in self.xobjects.items()}
         variants = list(children(obj))
 
         if len(variants) != 1:
-            assert False, "Must only be 1"
+            variant_names = ", ".join(v.tag for v in variants)
+            raise XError(
+                short="Multiple union variants present",
+                what=f"variants {variant_names} are present",
+                why=f"A union can only be one variant at a time",
+                ctx=ctx,
+            )
 
         variant = variants[0]
         if (xobj := named.get(variant.tag)) is not None:
-            return xobj.xml_in(variant)
+            return xobj.xml_in(variant, ctx.next(variant.tag))
         else:
-            assert False, "Not a present variant"
+            named_vars = ", ".join(named.keys())
+            raise XError(
+                short="Invalid Variant",
+                what=f"The union {obj.tag} can contain variants {named_vars}, but you have used {variant}",
+                why=f"Only valid variants can be parsed",
+                ctx=ctx,
+            )
 
 
 class NoneObj(XObject):
@@ -390,14 +475,19 @@ class NoneObj(XObject):
         yield f'{indent(depth)}<{name}/>{xcomment("This is None")}'
 
     def xml_out(
-        self, name: str, depth: int, val: None
+        self, name: str, depth: int, val: None, ctx: XErrorCtx
     ) -> Generator[str, None, None]:
         if val != None:
-            assert False, "Must be none!"
+            raise XError(
+                short="None object is not None",
+                what=f"{name} contains value {val} which is not None",
+                why="A None type object can only contain none",
+                ctx=ctx,
+            )
 
         yield f'{indent(depth)}<{name}/>{xcomment("This is None")}'
 
-    def xml_in(self, obj: ObjectifiedElement) -> Any:
+    def xml_in(self, obj: ObjectifiedElement, ctx: XErrorCtx) -> Any:
         return None
 
 
@@ -407,15 +497,19 @@ def is_xmlified(cls):
 
 def gen_xobject(data_type: type, forward_dec: set[type]) -> XObject:
     basic_types = {
-        int: (f"{GNS_POST}integer", str),
-        str: (f"{GNS_POST}string", str),
-        float: (f"{GNS_POST}decimal", str),
-        bool: (f"{GNS_POST}boolean", lambda b: "true" if b else "false"),
+        int: (f"{GNS_POST}integer", str, lambda d: type(d) == int),
+        str: (f"{GNS_POST}string", str, lambda d: type(d) == str),
+        float: (f"{GNS_POST}decimal", str, lambda d: type(d) == float),
+        bool: (
+            f"{GNS_POST}boolean",
+            lambda b: "true" if b else "false",
+            lambda d: type(d) == bool,
+        ),
     }
 
     if (basic_entry := basic_types.get(data_type)) is not None:
-        type_str, convert_fn = basic_entry
-        return BasicObj(type_str, convert_fn, data_type)
+        type_str, convert_fn, validate_fn = basic_entry
+        return BasicObj(type_str, convert_fn, validate_fn, data_type)
     elif isinstance(data_type, NoneType) or data_type == NoneType:
         # NOTE: Pythong typing cringe: None can be both a type and a value
         #       (even when within a type hint!)
