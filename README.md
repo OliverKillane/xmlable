@@ -109,3 +109,32 @@ black . # to reformat
 mypy    # type check
 pytest  # to run tests
 ```
+
+## To Improve
+
+#### XSD Generation
+
+Currently just a string generator, instead I want to create an xsd representation to build & then print (detaching printing/styling from xobject)
+
+#### XML Generation
+
+Like with xsd, moving to either using lxml etree or another representation.
+
+I initially decided against using etree (wanted to specify formatting closely, include comments etc), but this was a mistake in hindsight.
+
+#### Easier Custom Impls
+
+Add a decorator to generate methods, given `get_xobject` is implemented with an xobject implementation.
+
+#### More Configurability
+
+Importing other namespaces, different prefixes (currently hardcoded) etc.
+
+#### Fields
+
+Currently validators can only be implemented by either:
+
+- Checking the parsed dataclass
+- Making a custom implementation for a type, that checks in its xobject's xml_in function.
+
+`@xmlify` is a dataclass transformer, so we can add fields like dataclasses, and have type checking/intellisense work.
