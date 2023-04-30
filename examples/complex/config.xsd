@@ -1,0 +1,65 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+  <xsd:complexType name="Complex">
+    <xsd:sequence>
+      <xsd:element name="a">
+        <xsd:complexType> <!-- this is a dictionary! -->
+          <xsd:sequence>
+            <xsd:element name="dictitem" minOccurs="0" maxOccurs="unbounded">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="key">
+                      <xsd:sequence>
+                        <xsd:element name="tupleitem0" type="xsd:integer"/>
+                        <xsd:element name="tupleitem1" type="xsd:string"/>
+                      </xsd:sequence>
+                  </xsd:element>
+                  <xsd:element name="val">
+                    <xsd:complexType> <!-- this is a list! -->
+                      <xsd:sequence>
+                        <xsd:element name="listitem" minOccurs="0" maxOccurs="unbounded">
+                            <xsd:sequence>
+                              <xsd:element name="tupleitem0">
+                                <xsd:complexType> <!-- this is a dictionary! -->
+                                  <xsd:sequence>
+                                    <xsd:element name="dictitem" minOccurs="0" maxOccurs="unbounded">
+                                      <xsd:complexType>
+                                        <xsd:sequence>
+                                          <xsd:element name="key" type="xsd:integer"/>
+                                          <xsd:element name="val">
+                                            <xsd:complexType> <!-- this is a union! -->
+                                              <xsd:sequence>
+                                                <xsd:element name="variantfloat" type="xsd:decimal" minOccurs="0"/>
+                                                <xsd:element name="variantstr" type="xsd:string" minOccurs="0"/>
+                                              </xsd:sequence>
+                                            </xsd:complexType>
+                                          </xsd:element>
+                                        </xsd:sequence>
+                                      </xsd:complexType>
+                                    </xsd:element>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                              <xsd:element name="tupleitem1">
+                                <xsd:complexType> <!-- this is a list! -->
+                                  <xsd:sequence>
+                                    <xsd:element name="setitem" type="xsd:boolean" minOccurs="0" maxOccurs="unbounded"/>
+                                  </xsd:sequence>
+                                </xsd:complexType>
+                              </xsd:element>
+                            </xsd:sequence>
+                        </xsd:element>
+                      </xsd:sequence>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:element name="Complex" type="Complex" />
+</xsd:schema>

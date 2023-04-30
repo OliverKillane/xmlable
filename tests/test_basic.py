@@ -190,7 +190,4 @@ def test_advanced_test():
         a={(3, "hello"): [({3: 0.4}, {True, False}), ({2: "str"}, {False})]}
     )
 
-    x = "\n".join(Complex.xsd("bigschema"))
-    # assert False, x
-
     validate(c1)
