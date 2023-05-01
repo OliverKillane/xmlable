@@ -19,12 +19,21 @@ class XErrorCtx:
 
 # TODO: Custom traceback to point to location in the file
 class XError(Exception):
-    def __init__(self, short: str, what: str, why: str, ctx: XErrorCtx | None):
+    def __init__(
+        self,
+        short: str,
+        what: str,
+        why: str,
+        ctx: XErrorCtx | None = None,
+        notes: list[str] = [],
+    ):
         super().__init__(colored(short, "red", attrs=["blink"]))
         self.add_note(colored("What:  " + what, "blue"))
         self.add_note(colored("Why:   " + why, "yellow"))
         if ctx is not None:
             self.add_note(
-                colored("Where: In XML: ", "magenta")
+                colored("Where: ", "magenta")
                 + trace_note(ctx.trace, "light_magenta", "light_cyan")
             )
+        for note in notes:
+            self.add_note(note)

@@ -15,7 +15,8 @@ def write_xsd(cls: type, file_path: str, schema_name: str | None = None):
             short="Not Xmlified",
             what=f"{cls_name} is not xmlified, and hence cannot have an xsd written",
             why=f"the .xsd(...) method is required to write_xsd",
-        ).add_note(f"To fix, try:\n@xmlify\n@dataclass\nclass {cls_name}: ...")
+            notes=[f"To fix, try:\n@xmlify\n@dataclass\nclass {cls_name}: ..."],
+        )
 
     print(
         colored(
@@ -38,7 +39,8 @@ def write_xml(cls: type, file_path: str, schema_name: str | None = None):
             short="Not Xmlified",
             what=f"{cls_name} is not xmlified, and hence cannot have an xml written",
             why=f"the .xml(...) method is required to write_xml",
-        ).add_note(f"To fix, try:\n@xmlify\n@dataclass\nclass {cls_name}: ...")
+            notes=[f"To fix, try:\n@xmlify\n@dataclass\nclass {cls_name}: ..."],
+        )
 
     print(
         colored(
@@ -62,7 +64,8 @@ def write_xml_value(obj: Any, file_path: str, schema_name: str | None = None):
             short="Not Xmlified",
             what=f"{cls_name} is not xmlified, and hence cannot have an xml value written",
             why=f"the .xml_value(...) method is required to write_xml_value",
-        ).add_note(f"To fix, try:\n@xmlify\n@dataclass\nclass {cls_name}: ...")
+            notes=f"To fix, try:\n@xmlify\n@dataclass\nclass {cls_name}: ...",
+        )
 
     print(
         colored(

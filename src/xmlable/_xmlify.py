@@ -39,9 +39,10 @@ def validate_class(cls):
             what=f"{cls_name} is not a dataclass",
             why=f"xmlify uses dataclasses to get fields",
             ctx=XErrorCtx([cls_name]),
-        ).add_note(f"\nTry:\n@xmlify\n@dataclass\nclass {cls_name}:")
+            notes=[f"\nTry:\n@xmlify\n@dataclass\nclass {cls_name}:"],
+        )
 
-    for reserved in [
+    reserved_attrs = [
         "xsd_forward",
         "xsd_dependencies",
         "get_xobject",
@@ -49,7 +50,26 @@ def validate_class(cls):
         "xml",
         "xml_value",
         "parse",
-    ]:
+    ]
+
+    # TODO: cleanup repetition
+    for f in fields(cls):
+        if f.name in reserved_attrs:
+            raise XError(
+                short=f"Reserved Attribute",
+                what=f"{cls_name}.{reserved} is used by xmlify, so it cannot be a field of the class",
+                why=f"xmlify aguments {cls_name} by adding methods it can then use for xsd, xml generation and parsing",
+                ctx=XErrorCtx([cls_name]),
+            )
+        elif f.name == "comment":
+            raise XError(
+                short=f"Comment Attribute",
+                what=f"xmlifed classes cannot use comment as an attribute",
+                why=f"comment is used as a tag name for comments by lxml, so comments inserted on xml generation could conflict",
+                ctx=XErrorCtx([cls_name]),
+            )
+
+    for reserved in reserved_attrs:
         if hasattr(cls, reserved):
             raise XError(
                 short=f"Reserved Attribute",

@@ -521,25 +521,31 @@ def gen_xobject(data_type: type, forward_dec: set[type]) -> XObject:
         return UnionObj(
             {t: gen_xobject(t, forward_dec) for t in get_args(data_type)}
         )
-    elif typename(data_type) == "list":
-        (item_type,) = get_args(data_type)
-        return ListObj(gen_xobject(item_type, forward_dec))
-    elif typename(data_type) == "dict":
-        key_type, val_type = get_args(data_type)
-        return DictObj(
-            gen_xobject(key_type, forward_dec),
-            gen_xobject(val_type, forward_dec),
-        )
-    elif typename(data_type) == "tuple":
-        return TupleObj(
-            tuple(gen_xobject(t, forward_dec) for t in get_args(data_type))
-        )
-    elif typename(data_type) == "set":
-        (item_type,) = get_args(data_type)
-        return SetOBj(gen_xobject(item_type, forward_dec))
     else:
-        if is_xmlified(data_type):
-            forward_dec.add(data_type)
-            return data_type.get_xobject()
+        t_name = typename(data_type)
+        if t_name == "list":
+            (item_type,) = get_args(data_type)
+            return ListObj(gen_xobject(item_type, forward_dec))
+        elif t_name == "dict":
+            key_type, val_type = get_args(data_type)
+            return DictObj(
+                gen_xobject(key_type, forward_dec),
+                gen_xobject(val_type, forward_dec),
+            )
+        elif t_name == "tuple":
+            return TupleObj(
+                tuple(gen_xobject(t, forward_dec) for t in get_args(data_type))
+            )
+        elif t_name == "set":
+            (item_type,) = get_args(data_type)
+            return SetOBj(gen_xobject(item_type, forward_dec))
         else:
-            assert False, "Bad, type is not avail"
+            if is_xmlified(data_type):
+                forward_dec.add(data_type)
+                return data_type.get_xobject()
+            else:
+                raise XError(
+                    short="Non XMlified Type",
+                    what=f"You attempted to use {t_name} in an xmlified class, but {t_name} is not xmlified",
+                    why=f"All types usin in an xmlified class must be xmlified",
+                )
