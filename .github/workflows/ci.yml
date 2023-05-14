@@ -2,21 +2,30 @@ name: xmlable pypi publish
 
 on:
   push:
-    branches: ["master"]
+    branches:
+      - master
   pull_request:
-    branches: ["main"]
+    branches:
+      - master
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    environment:
+      name: pypi
     steps:
       - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
       - name: Install Hatch
         run: pipx install hatch
-      - name: test
-        run: hatch run pytest
+      - name: Test
+        run: hatch run check:test
+      - name: lint
+        run: hatch run check:lint
       - name: Build
         run: hatch build
       - name: Publish
         if: github.ref == 'refs/heads/master'
-        run: hatch publish
+        run: hatch publish --user "__token__" --auth ${{ secrets.XMLABLE_TOKEN }}

@@ -74,3 +74,10 @@ exclude = '''(
     | /__pycache__/
     | /\.pytest_cache/
 )'''
+
+[tool.hatch.envs.check]
+features = ["dev"]
+
+[tool.hatch.envs.check.scripts]
+test = "pytest"
+lint = "black ."
