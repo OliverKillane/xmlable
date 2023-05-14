@@ -30,4 +30,4 @@ def children(obj: ObjectifiedElement) -> Iterable[ObjectifiedElement]:
     def not_comment(child_obj: ObjectifiedElement):
         return child_obj.tag != "comment"
 
-    return filter(not_comment, obj.getchildren())
+    return filter(not_comment, obj.getchildren())  # type: ignore[arg-type, operator]

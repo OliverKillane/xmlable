@@ -461,13 +461,13 @@ def resolve_type(v: Any) -> type | None:
         return t
     elif t == dict and len(v) > 0:
         t0, t1 = next(iter(v.items()))
-        return dict[resolve_type(t0), resolve_type(t1)]
+        return dict[resolve_type(t0), resolve_type(t1)]  # type: ignore[misc, index, no-any-return]
     elif t == list and len(v) > 0:
-        return list[resolve_type(v[0])]
+        return list[resolve_type(v[0])]  # type: ignore[misc, index, no-any-return]
     elif t == set and len(v) > 0:
-        return set[resolve_type(next(iter(v)))]
+        return set[resolve_type(next(iter(v)))]  # type: ignore[misc, index, no-any-return]
     elif t == tuple and len(v) > 0:
-        return tuple[*(resolve_type(vi) for vi in v)]
+        return tuple[*(resolve_type(vi) for vi in v)]  # type: ignore[misc, no-any-return]
     else:
         # INV: non-generic type
         return t
@@ -522,7 +522,7 @@ class UnionObj(XObject):
     def xml_out(self, name: str, val: Any, ctx: XErrorCtx) -> _Element:
         t = resolve_type(val)
 
-        if (val_xobj := self.xobjects.get(t)) is not None:
+        if t is not None and (val_xobj := self.xobjects.get(t)) is not None:
             variant_name = self.elem_gen(t)
             return with_child(
                 Element(name),

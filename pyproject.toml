@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "xmlable"
-version = "1.0.0"
+version = "1.0.1"
 authors = [
   { name="Oliver Killane", email="oliverkillane.business@gmail.com" },
 ]
@@ -27,7 +27,7 @@ dependencies = [
 [project.urls]
 "Homepage" = "https://github.com/OliverKillane/xmlable"
 "Bug Tracker" = "https://github.com/OliverKillane/xmlable/issues"
-
+"Source" = "https://github.com/OliverKillane/xmlable"
 
 [project.optional-dependencies]
 dev = [
@@ -81,3 +81,4 @@ features = ["dev"]
 [tool.hatch.envs.check.scripts]
 test = "pytest"
 lint = "black ."
+typecheck = "mypy --check-untyped-defs"
