@@ -28,7 +28,7 @@ read_config: Config = parse_file(Config, "config_xml_example.xml")
 assert read_config == original
 ```
 
-See more in [examples](examples/)
+See more in [examples](https://github.com/OliverKillane/xmlable/tree/master/examples)
 
 ## Capabilities
 
@@ -92,7 +92,7 @@ class MyClass(IXmlify):
         return {MyClass}
 ```
 
-See the [user define example](examples/userdefined) for implementation.
+See the [user define example](https://github.com/OliverKillane/xmlable/tree/master/examples/userdefined) for implementation.
 
 ## Limitations
 
