@@ -8,8 +8,10 @@ version = "1.0.0"
 authors = [
   { name="Oliver Killane", email="oliverkillane.business@gmail.com" },
 ]
-description = "A tool for generating xsd and xml config from python classes"
+description = "A tool for generating xsd and xml config from python data classes"
 readme = "README.md"
+license = { file = "LICENSE"}
+keywords = ["xml", "xmlschema", "xsd", "lxml"]
 requires-python = ">=3.11"
 classifiers = [
     "Programming Language :: Python :: 3",
