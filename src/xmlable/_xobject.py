@@ -4,40 +4,23 @@ XObjects are an intermediate representation for python types -> xsd/xml
 - Associated xsd, xml and parsing 
 """
 
-
 from dataclasses import dataclass
 from types import NoneType, UnionType
 from lxml.objectify import ObjectifiedElement
+from lxml.etree import Element, Comment, _Element
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Generator, Iterable, get_args
+from typing import Any, Callable, get_args
 
-from xmlable._utils import get, opt_get
+from xmlable._utils import get, typename, firstkey
 from xmlable._errors import XErrorCtx, XError
-
-GNS_POST = "xsd:"
-GNS_PRE = ":xsd"
-
-
-def typename(t: type) -> str:
-    return t.__name__
-
-
-def indent(depth: int) -> str:
-    return " " * 2 * depth
-
-
-def stringify_mods(mods: dict[str, Any]) -> str:
-    return "".join(f' {key}="{val}"' for key, val in mods.items())
-
-
-def xcomment(txt: str) -> str:
-    return f"<!-- {txt} -->"
-
-
-def children(obj: ObjectifiedElement) -> Iterable[ObjectifiedElement]:
-    return filter(
-        lambda child_obj: child_obj.tag != "comment", obj.getchildren()
-    )
+from xmlable._lxml_helpers import (
+    with_text,
+    with_child,
+    with_children,
+    XMLSchema,
+    XMLURL,
+    children,
+)
 
 
 class XObject(ABC):
@@ -47,13 +30,16 @@ class XObject(ABC):
 
     @abstractmethod
     def xsd_out(
-        self, name: str, depth: int, mods: dict[str, Any] = {}
-    ) -> Generator[str, None, None]:
+        self,
+        name: str,
+        attribs: dict[str, str] = {},
+        add_ns: dict[str, str] = {},
+    ) -> _Element:
         """Generate the xsd schema for the object"""
         pass
 
     @abstractmethod
-    def xml_temp(self, name: str, depth: int) -> Generator[str, None, None]:
+    def xml_temp(self, name: str) -> _Element:
         """
         Generate commented output for the xml representation
         - Contains no values, only comments
@@ -62,9 +48,7 @@ class XObject(ABC):
         pass
 
     @abstractmethod
-    def xml_out(
-        self, name: str, depth: int, val: Any, ctx: XErrorCtx
-    ) -> Generator[str, None, None]:
+    def xml_out(self, name: str, val: Any, ctx: XErrorCtx) -> _Element:
         pass
 
     @abstractmethod
@@ -84,16 +68,35 @@ class BasicObj(XObject):
     parse_fn: Callable[[ObjectifiedElement], Any]
 
     def xsd_out(
-        self, name: str, depth: int, mods: dict[str, Any] = {}
-    ) -> Generator[str, None, None]:
-        yield f'{indent(depth)}<{GNS_POST}element name="{name}" type="{self.type_str}"{stringify_mods(mods)}/>'
+        self,
+        name: str,
+        attribs: dict[str, Any] = {},
+        add_ns: dict[str, str] = {},
+    ) -> _Element:
+        # NOTE: namespace cringe:
+        #       - lxml will deal with qualifying namespaces for the name of the
+        #         element, but not for attributes
+        #       - XMLSchema type attributes must be qualified
+        if (prefix := firstkey(add_ns, XMLURL)) is not None:
+            return Element(
+                f"{XMLSchema}element",
+                name=name,
+                type=f"{prefix}:{self.type_str}",
+                attrib=attribs,
+            )
+        else:
+            return Element(
+                f"{XMLSchema}element",
+                name=name,
+                type=f"xs:{self.type_str}",
+                attrib=attribs,
+                nsmap={"xs": XMLURL},
+            )
 
-    def xml_temp(self, name: str, depth: int) -> Generator[str, None, None]:
-        yield f"{indent(depth)}<{name}> Fill me with an {self.type_str} </{name}>"
+    def xml_temp(self, name: str) -> _Element:
+        return with_text(Element(name), f"Fill me with an {self.type_str}")
 
-    def xml_out(
-        self, name: str, depth: int, val: Any, ctx: XErrorCtx
-    ) -> Generator[str, None, None]:
+    def xml_out(self, name: str, val: Any, ctx: XErrorCtx) -> _Element:
         if not self.validate_fn(val):
             raise XError(
                 short="Invalid Data",
@@ -101,10 +104,18 @@ class BasicObj(XObject):
                 why=f"Produced xml must be valid",
                 ctx=ctx,
             )
-        yield f"{indent(depth)}<{name}>{self.convert_fn(val)}</{name}>"
+        return with_text(Element(name), self.convert_fn(val))
 
     def xml_in(self, obj: ObjectifiedElement, ctx: XErrorCtx) -> Any:
-        return self.parse_fn(obj)
+        try:
+            return self.parse_fn(obj)
+        except Exception as e:
+            raise XError(
+                short="Parse Failure",
+                what=f"Failed to parse {obj.text} as a {self.type_str} with error: \n {e}",
+                why=f"This error implies the xml is not validated against the current xsd, or there is a bug in this type's parser",
+                ctx=ctx,
+            )
 
 
 @dataclass
@@ -118,40 +129,55 @@ class ListObj(XObject):
     struct_name: str = "list"
 
     def xsd_out(
-        self, name: str, depth: int, mods: dict[str, Any] = {}
-    ) -> Generator[str, None, None]:
-        yield f'{indent(depth)}<{GNS_POST}element name="{name}"{stringify_mods(mods)}>'
-        yield f'{indent(depth + 1)}<{GNS_POST}complexType> {xcomment("this is a list!")}'
-        yield f"{indent(depth + 2)}<{GNS_POST}sequence>"
-        yield from self.item_xobject.xsd_out(
-            self.list_elem_name,
-            depth + 3,
-            {"minOccurs": 0, "maxOccurs": "unbounded"},
+        self,
+        name: str,
+        attribs: dict[str, str] = {},
+        add_ns: dict[str, str] = {},
+    ) -> _Element:
+        return with_child(
+            Element(f"{XMLSchema}element", name=name, attrib=attribs),
+            with_children(
+                Element(f"{XMLSchema}complexType"),
+                [
+                    Comment(f"This is a {self.struct_name}"),
+                    with_child(
+                        Element(f"{XMLSchema}sequence"),
+                        self.item_xobject.xsd_out(
+                            self.list_elem_name,
+                            {"minOccurs": "0", "maxOccurs": "unbounded"},
+                            add_ns,
+                        ),
+                    ),
+                ],
+            ),
         )
-        yield f"{indent(depth + 2)}</{GNS_POST}sequence>"
-        yield f"{indent(depth + 1)}</{GNS_POST}complexType>"
-        yield f"{indent(depth)}</{GNS_POST}element>"
 
-    def xml_temp(self, name: str, depth: int) -> Generator[str, None, None]:
-        yield f'{indent(depth)}<{name}>{xcomment(f"This is a {self.struct_name}")}'
-        yield from self.item_xobject.xml_temp(self.list_elem_name, depth + 1)
-        yield f"{indent(depth)}</{name}>"
+    def xml_temp(self, name: str) -> _Element:
+        return with_children(
+            Element(name),
+            [
+                Comment(f"This is a {self.struct_name}"),
+                self.item_xobject.xml_temp(self.list_elem_name),
+            ],
+        )
 
-    def xml_out(
-        self, name: str, depth: int, val: list[Any], ctx: XErrorCtx
-    ) -> Generator[str, None, None]:
+    def xml_out(self, name: str, val: Any, ctx: XErrorCtx) -> _Element:
         if len(val) > 0:
-            yield f"{indent(depth)}<{name}>"
-            for i, item_val in enumerate(val):
-                yield from self.item_xobject.xml_out(
-                    self.list_elem_name,
-                    depth + 1,
-                    item_val,
-                    ctx.next(f"{self.list_elem_name}[{i}]"),
-                )
-            yield f"{indent(depth)}</{name}>"
+            return with_children(
+                Element(name),
+                [
+                    self.item_xobject.xml_out(
+                        self.list_elem_name,
+                        item_val,
+                        ctx.next(f"{self.list_elem_name}[{i}]"),
+                    )
+                    for i, item_val in enumerate(val)
+                ],
+            )
         else:
-            yield f'{indent(depth)}<{name}/>{xcomment("Empty List!")}'
+            return with_child(
+                Element(name), Comment(f"Empty {self.struct_name}!")
+            )
 
     def xml_in(self, obj: ObjectifiedElement, ctx: XErrorCtx) -> list[Any]:
         parsed = []
@@ -180,26 +206,34 @@ class StructObj(XObject):
     struct_name: str = "struct"
 
     def xsd_out(
-        self, name: str, depth: int, mods: dict[str, Any] = {}
-    ) -> Generator[str, None, None]:
-        yield f'{indent(depth)}<{GNS_POST}element name="{name}"{stringify_mods(mods)}>'
-        yield f"{indent(depth+ 1)}<{GNS_POST}complexType>"
-        yield f"{indent(depth + 2)}<{GNS_POST}sequence>"
-        for member, xobj in self.objects:
-            yield from xobj.xsd_out(member, depth + 3)
-        yield f"{indent(depth + 2)}</{GNS_POST}sequence>"
-        yield f"{indent(depth + 1)}</{GNS_POST}complexType>"
-        yield f"{indent(depth)}</{GNS_POST}element>"
+        self,
+        name: str,
+        attribs: dict[str, str] = {},
+        add_ns: dict[str, str] = {},
+    ) -> _Element:
+        return with_child(
+            Element(f"{XMLSchema}element", name=name, attrib=attribs),
+            with_child(
+                Element(f"{XMLSchema}complexType"),
+                with_children(
+                    Element(f"{XMLSchema}sequence"),
+                    [Comment(f"This is a {self.struct_name}")]
+                    + [
+                        xobj.xsd_out(member, {}, add_ns)
+                        for member, xobj in self.objects
+                    ],
+                ),
+            ),
+        )
 
-    def xml_temp(self, name: str, depth: int) -> Generator[str, None, None]:
-        yield f'{indent(depth)}<{name}>{xcomment(f"This is a {self.struct_name}")}'
-        for member, xobj in self.objects:
-            yield from xobj.xml_temp(member, depth + 1)
-        yield f"{indent(depth)}</{name}>"
+    def xml_temp(self, name: str) -> _Element:
+        return with_children(
+            Element(name),
+            [Comment(f"This is a {self.struct_name}")]
+            + [xobj.xml_temp(member) for member, xobj in self.objects],
+        )
 
-    def xml_out(
-        self, name: str, depth: int, val: tuple[Any, ...], ctx: XErrorCtx
-    ) -> Generator[str, None, None]:
+    def xml_out(self, name: str, val: Any, ctx: XErrorCtx) -> _Element:
         if len(val) != len(self.objects):
             raise XError(
                 short="Incorrect Type",
@@ -208,10 +242,13 @@ class StructObj(XObject):
                 ctx=ctx,
             )
 
-        yield f"{indent(depth)}<{name}>"
-        for (member, xobj), v in zip(self.objects, val):
-            yield from xobj.xml_out(member, depth + 1, v, ctx.next(member))
-        yield f"{indent(depth)}</{name}>"
+        return with_children(
+            Element(name),
+            [
+                xobj.xml_out(member, v, ctx.next(member))
+                for (member, xobj), v in zip(self.objects, val)
+            ],
+        )
 
     def xml_in(
         self, obj: ObjectifiedElement, ctx: XErrorCtx
@@ -246,23 +283,24 @@ class TupleObj(XObject):
         )
 
     def xsd_out(
-        self, name: str, depth: int, mods: dict[str, Any] = {}
-    ) -> Generator[str, None, None]:
-        yield from self.struct.xsd_out(name, depth, mods)
+        self,
+        name: str,
+        attribs: dict[str, str] = {},
+        add_ns: dict[str, str] = {},
+    ) -> _Element:
+        return self.struct.xsd_out(name, attribs, add_ns)
 
-    def xml_temp(self, name: str, depth: int) -> Generator[str, None, None]:
-        yield from self.struct.xml_temp(name, depth)
+    def xml_temp(self, name: str) -> _Element:
+        return self.struct.xml_temp(name)
 
-    def xml_out(
-        self, name: str, depth: int, val: tuple[Any, ...], ctx: XErrorCtx
-    ) -> Generator[str, None, None]:
-        yield from self.struct.xml_out(name, depth, val, ctx)
+    def xml_out(self, name: str, val: Any, ctx: XErrorCtx) -> _Element:
+        return self.struct.xml_out(name, val, ctx)
 
     def xml_in(
         self, obj: ObjectifiedElement, ctx: XErrorCtx
     ) -> tuple[Any, ...]:
         # Assumes the objects are in the correct order
-        return list(zip(*self.struct.xml_in(obj, ctx)))[1]
+        return tuple(zip(*self.struct.xml_in(obj, ctx)))[1]  # type: ignore[no-any-return]
 
 
 class SetOBj(XObject):
@@ -272,17 +310,18 @@ class SetOBj(XObject):
         self.list = ListObj(inner, elem_name, struct_name="set")
 
     def xsd_out(
-        self, name: str, depth: int, mods: dict[str, Any] = {}
-    ) -> Generator[str, None, None]:
-        yield from self.list.xsd_out(name, depth, mods)
+        self,
+        name: str,
+        attribs: dict[str, str] = {},
+        add_ns: dict[str, str] = {},
+    ) -> _Element:
+        return self.list.xsd_out(name, attribs, add_ns)
 
-    def xml_temp(self, name: str, depth: int) -> Generator[str, None, None]:
-        yield from self.list.xml_temp(name, depth)
+    def xml_temp(self, name: str) -> _Element:
+        return self.list.xml_temp(name)
 
-    def xml_out(
-        self, name: str, depth: int, val: set[Any], ctx: XErrorCtx
-    ) -> Generator[str, None, None]:
-        yield from self.list.xml_out(name, depth, list(val), ctx)
+    def xml_out(self, name: str, val: Any, ctx: XErrorCtx) -> _Element:
+        return self.list.xml_out(name, list(val), ctx)
 
     def xml_in(self, obj: ObjectifiedElement, ctx: XErrorCtx) -> set[Any]:
         parsed: set[Any] = set()
@@ -309,46 +348,76 @@ class DictObj(XObject):
     item_name: str = "dictitem"
 
     def xsd_out(
-        self, name: str, depth: int, mods: dict[str, Any] = {}
-    ) -> Generator[str, None, None]:
-        yield f'{indent(depth)}<{GNS_POST}element name="{name}"{stringify_mods(mods)}>'
-        yield f'{indent(depth + 1)}<{GNS_POST}complexType> {xcomment("this is a dictionary!")}'
-        yield f"{indent(depth + 2)}<{GNS_POST}sequence>"
-        yield f'{indent(depth + 3)}<{GNS_POST}element name="{self.item_name}" minOccurs="0" maxOccurs="unbounded">'
-        yield f"{indent(depth + 4)}<{GNS_POST}complexType>"
-        yield f"{indent(depth + 5)}<{GNS_POST}sequence>"
-        yield from self.key_xobject.xsd_out(self.key_name, depth + 6)
-        yield from self.val_xobject.xsd_out(self.val_name, depth + 6)
-        yield f"{indent(depth + 5)}</{GNS_POST}sequence>"
-        yield f"{indent(depth + 4)}</{GNS_POST}complexType>"
-        yield f"{indent(depth + 3)}</{GNS_POST}element>"
-        yield f"{indent(depth + 2)}</{GNS_POST}sequence>"
-        yield f"{indent(depth + 1)}</{GNS_POST}complexType>"
-        yield f"{indent(depth)}</{GNS_POST}element>"
+        self,
+        name: str,
+        attribs: dict[str, str] = {},
+        add_ns: dict[str, str] = {},
+    ) -> _Element:
+        return with_child(
+            Element(f"{XMLSchema}element", name=name, attrib=attribs),
+            with_children(
+                Element(f"{XMLSchema}complexType"),
+                [
+                    Comment("this is a dictionary!"),
+                    with_child(
+                        Element(f"{XMLSchema}sequence"),
+                        with_child(
+                            Element(
+                                f"{XMLSchema}element",
+                                name=self.item_name,
+                                minOccurs="0",
+                                maxOccurs="unbounded",
+                            ),
+                            with_child(
+                                Element(f"{XMLSchema}complexType"),
+                                with_children(
+                                    Element(f"{XMLSchema}sequence"),
+                                    [
+                                        self.key_xobject.xsd_out(
+                                            self.key_name, {}, add_ns
+                                        ),
+                                        self.val_xobject.xsd_out(
+                                            self.val_name, {}, add_ns
+                                        ),
+                                    ],
+                                ),
+                            ),
+                        ),
+                    ),
+                ],
+            ),
+        )
 
-    def xml_temp(self, name: str, depth: int) -> Generator[str, None, None]:
-        yield f"{indent(depth)}<{name}>"
-        yield f'{indent(depth + 1)}<{self.item_name}>{xcomment("This is a dictionary")}'
-        yield from self.key_xobject.xml_temp(self.key_name, depth + 2)
-        yield from self.val_xobject.xml_temp(self.val_name, depth + 2)
-        yield f"{indent(depth + 1)}</{self.item_name}>"
-        yield f"{indent(depth)}</{name}>"
+    def xml_temp(self, name: str) -> _Element:
+        return with_children(
+            Element(name),
+            [
+                Comment("This is a dictionary"),
+                self.key_xobject.xml_temp(self.key_name),
+                self.val_xobject.xml_temp(self.val_name),
+            ],
+        )
 
-    def xml_out(
-        self, name: str, depth: int, val: dict[Any, Any], ctx: XErrorCtx
-    ) -> Generator[str, None, None]:
-        yield f"{indent(depth)}<{name}>"
+    def xml_out(self, name: str, val: Any, ctx: XErrorCtx) -> _Element:
         item_ctx = ctx.next(self.item_name)
-        for k, v in val.items():
-            yield f"{indent(depth + 1)}<{self.item_name}>"
-            yield from self.key_xobject.xml_out(
-                self.key_name, depth + 2, k, item_ctx.next(name)
-            )
-            yield from self.val_xobject.xml_out(
-                self.val_name, depth + 2, v, item_ctx.next(name)
-            )
-            yield f"{indent(depth + 1)}</{self.item_name}>"
-        yield f"{indent(depth)}</{name}>"
+
+        return with_children(
+            Element(name),
+            [
+                with_children(
+                    Element(self.item_name),
+                    [
+                        self.key_xobject.xml_out(
+                            self.key_name, k, item_ctx.next(name)
+                        ),
+                        self.val_xobject.xml_out(
+                            self.val_name, v, item_ctx.next(name)
+                        ),
+                    ],
+                )
+                for k, v in val.items()
+            ],
+        )
 
     def xml_in(self, obj: ObjectifiedElement, ctx: XErrorCtx) -> dict[Any, Any]:
         parsed = {}
@@ -374,12 +443,34 @@ class DictObj(XObject):
                         short="Duplicate key in dictionary",
                         what=f"In dictionary {obj.tag} the key {k} is present more than once",
                         why=f"Dictionaries must have unique keys",
-                        cts=ctx,
+                        ctx=ctx,
                     )
 
                 parsed[k] = v
                 # Check for other tags? Fail better?
         return parsed
+
+
+def resolve_type(v: Any) -> type | None:
+    """Determine the type of some value, using primitive types
+    - If empty container, only provide top container type
+    INV: only generic types for v are {tuple, list, dict, set}
+    """
+    t = type(v)
+    if t in {int, float, str, bool, NoneType}:
+        return t
+    elif t == dict and len(v) > 0:
+        t0, t1 = next(iter(v.items()))
+        return dict[resolve_type(t0), resolve_type(t1)]
+    elif t == list and len(v) > 0:
+        return list[resolve_type(v[0])]
+    elif t == set and len(v) > 0:
+        return set[resolve_type(next(iter(v)))]
+    elif t == tuple and len(v) > 0:
+        return tuple[*(resolve_type(vi) for vi in v)]
+    else:
+        # INV: non-generic type
+        return t
 
 
 @dataclass
@@ -390,39 +481,52 @@ class UnionObj(XObject):
     elem_gen: Callable[[type], str] = lambda t: f"variant{typename(t)}"
 
     def xsd_out(
-        self, name: str, depth: int, mods: dict[str, Any] = {}
-    ) -> Generator[str, None, None]:
-        yield f'{indent(depth)}<{GNS_POST}element name="{name}"{stringify_mods(mods)}>'
-        yield f'{indent(depth + 1)}<{GNS_POST}complexType> {xcomment("this is a union!")}'
-        yield f"{indent(depth + 2)}<{GNS_POST}sequence>"
-        for t, xobj in self.xobjects.items():
-            yield from xobj.xsd_out(
-                self.elem_gen(t), depth + 3, {"minOccurs": 0}
-            )
-        yield f"{indent(depth + 2)}</{GNS_POST}sequence>"
-        yield f"{indent(depth + 1)}</{GNS_POST}complexType>"
-        yield f"{indent(depth)}</{GNS_POST}element>"
+        self,
+        name: str,
+        attribs: dict[str, str] = {},
+        add_ns: dict[str, str] = {},
+    ) -> _Element:
+        return with_child(
+            Element(f"{XMLSchema}element", name=name, attrib=attribs),
+            with_children(
+                Element(f"{XMLSchema}complexType"),
+                [
+                    Comment("this is a union!"),
+                    with_children(
+                        Element(f"{XMLSchema}sequence"),
+                        [
+                            xobj.xsd_out(
+                                self.elem_gen(t), {"minOccurs": "0"}, add_ns
+                            )
+                            for t, xobj in self.xobjects.items()
+                        ],
+                    ),
+                ],
+            ),
+        )
 
-    def xml_temp(self, name: str, depth: int) -> Generator[str, None, None]:
-        yield f"{indent(depth)}<{name}>"
-        yield f"{indent(depth)}<!-- This is a union, the following variants are possible"
+    def xml_temp(self, name: str) -> _Element:
+        return with_children(
+            Element(name),
+            [
+                Comment(
+                    "This is a union, the following variants are possible, only one can be present"
+                )
+            ]
+            + [
+                xobj.xml_temp(self.elem_gen(t))
+                for t, xobj in self.xobjects.items()
+            ],
+        )
 
-        for t, xobj in self.xobjects.items():
-            yield from xobj.xml_temp(self.elem_gen(t), depth + 1)
-
-        yield f"{indent(depth)}-->"
-        yield f"{indent(depth)}</{name}>"
-
-    def xml_out(
-        self, name: str, depth: int, val: Any, ctx: XErrorCtx
-    ) -> Generator[str, None, None]:
-        yield f"{indent(depth)}<{name}>"
-        t = type(val)
+    def xml_out(self, name: str, val: Any, ctx: XErrorCtx) -> _Element:
+        t = resolve_type(val)
 
         if (val_xobj := self.xobjects.get(t)) is not None:
             variant_name = self.elem_gen(t)
-            yield from val_xobj.xml_out(
-                variant_name, depth + 1, val, ctx.next(variant_name)
+            return with_child(
+                Element(name),
+                val_xobj.xml_out(variant_name, val, ctx.next(variant_name)),
             )
         else:
             types = " | ".join(str(t) for t in self.xobjects.keys())
@@ -432,8 +536,6 @@ class UnionObj(XObject):
                 why=f"... uuuh, its a union?",
                 ctx=ctx,
             )
-
-        yield f"{indent(depth)}</{name}>"
 
     def xml_in(self, obj: ObjectifiedElement, ctx: XErrorCtx) -> Any:
         named = {self.elem_gen(t): xobj for t, xobj in self.xobjects.items()}
@@ -468,16 +570,20 @@ class NoneObj(XObject):
     """
 
     def xsd_out(
-        self, name: str, depth: int, mods: dict[str, Any] = {}
-    ) -> Generator[str, None, None]:
-        yield f'{indent(depth)}<{GNS_POST}element name="{name}"{stringify_mods(mods)}/>{xcomment("None Type")}'
+        self,
+        name: str,
+        attribs: dict[str, str] = {},
+        add_ns: dict[str, str] = {},
+    ) -> _Element:
+        return with_child(
+            Element(f"{XMLSchema}element", name=name, attrib=attribs),
+            Comment("This is a None type"),
+        )
 
-    def xml_temp(self, name: str, depth: int) -> Generator[str, None, None]:
-        yield f'{indent(depth)}<{name}/>{xcomment("This is None")}'
+    def xml_temp(self, name: str) -> _Element:
+        return with_child(Element(name), Comment("This is None"))
 
-    def xml_out(
-        self, name: str, depth: int, val: None, ctx: XErrorCtx
-    ) -> Generator[str, None, None]:
+    def xml_out(self, name: str, val: Any, ctx: XErrorCtx) -> _Element:
         if val != None:
             raise XError(
                 short="None object is not None",
@@ -486,23 +592,33 @@ class NoneObj(XObject):
                 ctx=ctx,
             )
 
-        yield f'{indent(depth)}<{name}/>{xcomment("This is None")}'
+        return with_child(Element(name), Comment("This is None"))
 
     def xml_in(self, obj: ObjectifiedElement, ctx: XErrorCtx) -> Any:
         return None
 
 
 def is_xmlified(cls):
-    return hasattr(cls, "xmlified")
+    return (
+        hasattr(cls, "xsd_forward")
+        and hasattr(cls, "xsd_dependencies")
+        and hasattr(cls, "get_xobject")
+        and hasattr(cls, "xsd")
+        and hasattr(cls, "xml")
+        and hasattr(cls, "xml_value")
+        and hasattr(cls, "parse")
+    )
 
 
 def gen_xobject(data_type: type, forward_dec: set[type]) -> XObject:
-    basic_types = {
-        int: (f"{GNS_POST}integer", str, lambda d: type(d) == int),
-        str: (f"{GNS_POST}string", str, lambda d: type(d) == str),
-        float: (f"{GNS_POST}decimal", str, lambda d: type(d) == float),
+    basic_types: dict[
+        type, tuple[str, Callable[[Any], str], Callable[[Any], bool]]
+    ] = {
+        int: ("integer", str, lambda d: type(d) == int),
+        str: ("string", str, lambda d: type(d) == str),
+        float: ("decimal", str, lambda d: type(d) == float),
         bool: (
-            f"{GNS_POST}boolean",
+            "boolean",
             lambda b: "true" if b else "false",
             lambda d: type(d) == bool,
         ),
@@ -512,7 +628,7 @@ def gen_xobject(data_type: type, forward_dec: set[type]) -> XObject:
         type_str, convert_fn, validate_fn = basic_entry
         return BasicObj(type_str, convert_fn, validate_fn, data_type)
     elif isinstance(data_type, NoneType) or data_type == NoneType:
-        # NOTE: Pythong typing cringe: None can be both a type and a value
+        # NOTE: Python typing cringe: None can be both a type and a value
         #       (even when within a type hint!)
         # a: list[None] -> None is an instance of NoneType
         # a: int | None -> Union of int and NoneType
@@ -542,7 +658,7 @@ def gen_xobject(data_type: type, forward_dec: set[type]) -> XObject:
         else:
             if is_xmlified(data_type):
                 forward_dec.add(data_type)
-                return data_type.get_xobject()
+                return data_type.get_xobject()  # type: ignore[attr-defined, no-any-return]
             else:
                 raise XError(
                     short="Non XMlified Type",

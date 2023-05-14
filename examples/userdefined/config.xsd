@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" id="MyConfig" elementFormDefault="qualified">
+  <xs:simpleType name="PGConnection">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="postgresql:\/\/([^:]*):([^@]*)?@([^:]*):(\d+)\/([^\?]*)(\??.*)"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:complexType name="MyConfig">
+    <xs:sequence>
+      <xs:element name="foos" type="xs:integer"/>
+      <xs:element name="conns">
+        <xs:complexType>
+          <!--This is a list-->
+          <xs:sequence>
+            <xs:element name="listitem" type="PostgresConn" minOccurs="0" maxOccurs="unbounded"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="MyConfig" type="MyConfig"/>
+</xs:schema>

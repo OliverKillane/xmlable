@@ -11,7 +11,10 @@ class Config:
     show_logs: bool
 
 
-write_file("config.xsd", Config.xsd())
+write_file(
+    "config.xsd",
+    Config.xsd(namespaces={"xmlSchema": "http://www.w3.org/2001/XMLSchema"}),
+)
 write_file("config_xml_template.xml", Config.xml())
 
 original = Config(

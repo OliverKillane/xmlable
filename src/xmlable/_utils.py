@@ -1,8 +1,11 @@
-""" Basic Utilities
+""" 
+Basic Utilities
 Includes common helper functions for this project
 - Handling optionals
 - getting members by string name
+- typenames
 """
+
 from typing import Any, Callable, TypeVar
 
 
@@ -30,3 +33,19 @@ def opt_get(obj: Any, attr: str) -> Any | None:
         return obj.__getattribute__(attr)
     except AttributeError:
         return None
+
+
+X = TypeVar("X")
+Y = TypeVar("Y")
+
+
+def firstkey(d: dict[X, Y], val: Y) -> X | None:
+    for k, v in d.items():
+        if v == val:
+            return k
+    else:
+        return None
+
+
+def typename(t: type) -> str:
+    return t.__name__

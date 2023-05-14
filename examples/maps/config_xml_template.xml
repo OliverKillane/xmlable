@@ -1,21 +1,22 @@
+<?xml version='1.0' encoding='UTF-8'?>
 <BigConfig>
   <machine_ids>
-    <dictitem><!-- This is a dictionary -->
-      <key>
-        <location> Fill me with an xsd:string </location>
-        <serv_name> Fill me with an xsd:string </serv_name>
-      </key>
-      <val>
-        <ip> Fill me with an xsd:string </ip>
-        <cores> Fill me with an xsd:integer </cores>
-        <org_owner>
-        <!-- This is a union, the following variants are possible
-          <variantint> Fill me with an xsd:integer </variantint>
-          <variantNoneType/><!-- This is None -->
-        -->
-        </org_owner>
-      </val>
-    </dictitem>
+    <!--This is a dictionary-->
+    <key>
+      <location>Fill me with an string</location>
+      <serv_name>Fill me with an string</serv_name>
+    </key>
+    <val>
+      <ip>Fill me with an string</ip>
+      <cores>Fill me with an integer</cores>
+      <org_owner>
+        <!--This is a union, the following variants are possible, only one can be present-->
+        <variantint>Fill me with an integer</variantint>
+        <variantNoneType>
+          <!--This is None-->
+        </variantNoneType>
+      </org_owner>
+    </val>
   </machine_ids>
-  <show_logs> Fill me with an xsd:boolean </show_logs>
+  <show_logs>Fill me with an boolean</show_logs>
 </BigConfig>

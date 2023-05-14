@@ -8,24 +8,21 @@ Given a dataclass:
   a filled xml
 - Create a parser for parsing the xml
 """
+
 from dataclasses import fields, is_dataclass
-from typing import Any, Generator, dataclass_transform
+from typing import Any, dataclass_transform
 from lxml.objectify import ObjectifiedElement
+from lxml.etree import Element, _Element
 from xmlable._utils import get
 from xmlable._errors import XErrorCtx, XError
+from xmlable._manual import manual_xmlify
 
-from xmlable._xobject import (
-    GNS_POST,
-    GNS_PRE,
-    XObject,
-    gen_xobject,
-    indent,
-    stringify_mods,
-    typename,
-)
+from xmlable._utils import typename
+from xmlable._lxml_helpers import with_children, with_child, XMLSchema
+from xmlable._xobject import XObject, gen_xobject
 
 
-def validate_class(cls):
+def validate_class(cls: type):
     """
     Validate tha the class can be xmlified
     - Must be a dataclass
@@ -57,7 +54,7 @@ def validate_class(cls):
         if f.name in reserved_attrs:
             raise XError(
                 short=f"Reserved Attribute",
-                what=f"{cls_name}.{reserved} is used by xmlify, so it cannot be a field of the class",
+                what=f"{cls_name}.{f.name} is used by xmlify, so it cannot be a field of the class",
                 why=f"xmlify aguments {cls_name} by adding methods it can then use for xsd, xml generation and parsing",
                 ctx=XErrorCtx([cls_name]),
             )
@@ -99,36 +96,36 @@ def xmlify(cls: type) -> type:
 
         class UserXObject(XObject):
             def xsd_out(
-                self, name: str, depth: int, mods: dict[str, Any] = {}
-            ) -> Generator[str, None, None]:
-                yield f'{indent(depth)}<{GNS_POST}element name="{name}" type="{cls_name}"{stringify_mods(mods)} />'
+                self,
+                name: str,
+                attribs: dict[str, str] = {},
+                add_ns: dict[str, str] = {},
+            ) -> _Element:
+                return Element(
+                    f"{XMLSchema}element",
+                    name=name,
+                    type=cls_name,
+                    attrib=attribs,
+                )
 
-            def xml_out(
-                self, name: str, depth: int, val: Any, ctx: XErrorCtx
-            ) -> Generator[str, None, None]:
-                if len(meta_xobjects) > 0:
-                    yield f"{indent(depth)}<{name}>"
-                    for m, xobj in meta_xobjects:
-                        yield from xobj.xml_out(
+            def xml_temp(self, name: str) -> _Element:
+                return with_children(
+                    Element(name),
+                    [xobj.xml_temp(m.name) for m, xobj in meta_xobjects],
+                )
+
+            def xml_out(self, name: str, val: Any, ctx: XErrorCtx) -> _Element:
+                return with_children(
+                    Element(name),
+                    [
+                        xobj.xml_out(
                             m.name,
-                            depth + 1,
                             get(val, m.name),
                             ctx.next(m.name),
                         )
-                    yield f"{indent(depth)}</{name}>"
-                else:
-                    yield f"{indent(depth)}<{name}/>"
-
-            def xml_temp(
-                self, name: str, depth: int
-            ) -> Generator[str, None, None]:
-                if len(meta_xobjects) > 0:
-                    yield f"{indent(depth)}<{name}>"
-                    for m, xobj in meta_xobjects:
-                        yield from xobj.xml_temp(m.name, depth + 1)
-                    yield f"{indent(depth)}</{name}>"
-                else:
-                    yield f"{indent(depth)}<{name}/>"
+                        for m, xobj in meta_xobjects
+                    ],
+                )
 
             def xml_in(self, obj: ObjectifiedElement, ctx: XErrorCtx) -> Any:
                 parsed: dict[str, Any] = {}
@@ -146,13 +143,17 @@ def xmlify(cls: type) -> type:
 
         cls_xobject = UserXObject()
 
-        def xsd_forward(depth: int) -> Generator[str, None, None]:
-            yield f'{indent(depth)}<{GNS_POST}complexType name="{cls_name}">'
-            yield f"{indent(depth+1)}<{GNS_POST}sequence>"
-            for m, xobj in meta_xobjects:
-                yield from xobj.xsd_out(m.name, depth + 2, {})
-            yield f"{indent(depth+1)}</{GNS_POST}sequence>"
-            yield f"{indent(depth)}</{GNS_POST}complexType>"
+        def xsd_forward(add_ns: dict[str, str]) -> _Element:
+            return with_child(
+                Element(f"{XMLSchema}complexType", name=cls_name),
+                with_children(
+                    Element(f"{XMLSchema}sequence"),
+                    [
+                        xobj.xsd_out(m.name, attribs={}, add_ns=add_ns)
+                        for m, xobj in meta_xobjects
+                    ],
+                ),
+            )
 
         def xsd_dependencies() -> set[type]:
             return forward_decs
@@ -160,67 +161,13 @@ def xmlify(cls: type) -> type:
         def get_xobject():
             return cls_xobject
 
-        def xsd(
-            schema_name: str,
-            xmlns: str = "http://www.w3.org/2001/XMLSchema",
-            options: dict[str, str] = {},
-            imports: dict[str, str] = {},
-        ) -> Generator[str, None, None]:
-            # yield '<?xml version="1.0" encoding="utf-8"?>'
-            options_str = "".join(f' {k}="{v}"' for k, v in options.items())
-            yield f'<{GNS_POST}schema xmlns{GNS_PRE}="{xmlns}"{options_str}>'
-            for ns, schloc in imports.items():
-                yield f'{indent(1)}<import namespace="{ns}" schemaLocation="{schloc}"/>'
-            yield f""
-
-            visited: set[type] = set()
-            dec_order: list[type] = []
-
-            def toposort(curr: type, visited: set[type], dec_order: list[type]):
-                visited.add(curr)
-                deps = curr.xsd_dependencies()
-                for d in deps:
-                    if d not in visited:
-                        toposort(d, visited, dec_order)
-                dec_order.append(curr)
-
-            toposort(cls, visited, dec_order)
-
-            for dec in dec_order:
-                yield from dec.xsd_forward(1)
-                yield f""
-
-            yield from cls_xobject.xsd_out(schema_name, 1)
-            yield f"</{GNS_POST}schema>"
-
-        def xml(schema_name: str) -> Generator[str, None, None]:
-            # yield f'<?xml version="1.0" encoding="utf-8"?>'
-            yield from cls_xobject.xml_temp(schema_name, 0)
-
-        def xml_value(self, schema_name: str) -> Generator[str, None, None]:
-            yield from cls_xobject.xml_out(
-                schema_name, 0, self, XErrorCtx([schema_name])
-            )
-
-        def parse(obj: ObjectifiedElement) -> Any:
-            return cls_xobject.xml_in(obj, XErrorCtx([obj.tag]))
-
         # helper methods for gen_xobject, and other dataclasses to generate their
         # x methods
-        cls.xsd_forward = xsd_forward
-        cls.xsd_dependencies = xsd_dependencies
-        cls.get_xobject = get_xobject
+        cls.xsd_forward = xsd_forward  # type: ignore[attr-defined]
+        cls.xsd_dependencies = xsd_dependencies  # type: ignore[attr-defined]
+        cls.get_xobject = get_xobject  # type: ignore[attr-defined]
 
-        # x methods for user
-        cls.xsd = xsd
-        cls.xml = xml
-        setattr(cls, "xml_value", xml_value)  # needs to use self to get values
-        cls.parse = parse
-
-        # Mark the class as xmlified
-        cls.xmlified = True
-
-        return cls
+        return manual_xmlify(cls)
     except XError as e:
         # NOTE: Trick to remove dirty 'internal' traceback, and raise from
         #       xmlify (makes more sense to user than seeing internals)

@@ -3,22 +3,27 @@ from xmlable import xmlify
 
 
 # Some examples that will error
-# @xmlify
-# class NotDataclass:
-#     a: int
+
+
+# not a dataclass
+@xmlify
+class NotDataclass:
+    a: int
 
 
 # uses comment
-# @xmlify
-# @dataclass
-# class ContainsComment:
-#     comment: str
+@xmlify
+@dataclass
+class ContainsComment:
+    comment: str
+
 
 # using non-mxmlified class
-# class NotXmlified:
-#     pass
-#
-# @xmlify
-# @dataclass
-# class InvalidType:
-#     member: NotXmlified
+class NotXmlified:
+    pass
+
+
+@xmlify
+@dataclass
+class InvalidType:
+    member: NotXmlified

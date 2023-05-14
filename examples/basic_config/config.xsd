@@ -1,19 +1,19 @@
-<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-
-  <xsd:complexType name="Config">
-    <xsd:sequence>
-      <xsd:element name="date" type="xsd:string"/>
-      <xsd:element name="number_of_cores" type="xsd:integer"/>
-      <xsd:element name="codes">
-        <xsd:complexType> <!-- this is a list! -->
-          <xsd:sequence>
-            <xsd:element name="listitem" type="xsd:integer" minOccurs="0" maxOccurs="unbounded"/>
-          </xsd:sequence>
-        </xsd:complexType>
-      </xsd:element>
-      <xsd:element name="show_logs" type="xsd:boolean"/>
-    </xsd:sequence>
-  </xsd:complexType>
-
-  <xsd:element name="Config" type="Config" />
-</xsd:schema>
+<?xml version='1.0' encoding='UTF-8'?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" id="Config" elementFormDefault="qualified">
+  <xs:complexType name="Config">
+    <xs:sequence>
+      <xs:element name="date" type="xs:string"/>
+      <xs:element name="number_of_cores" type="xs:integer"/>
+      <xs:element name="codes">
+        <xs:complexType>
+          <!--This is a list-->
+          <xs:sequence>
+            <xs:element name="listitem" type="xs:integer" minOccurs="0" maxOccurs="unbounded"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="show_logs" type="xs:boolean"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="Config" type="Config"/>
+</xs:schema>

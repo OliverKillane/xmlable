@@ -1,28 +1,30 @@
+<?xml version='1.0' encoding='UTF-8'?>
 <Complex>
   <a>
-    <dictitem><!-- This is a dictionary -->
-      <key><!-- This is a tuple -->
-        <tupleitem0> Fill me with an xsd:integer </tupleitem0>
-        <tupleitem1> Fill me with an xsd:string </tupleitem1>
-      </key>
-      <val><!-- This is a list -->
-        <listitem><!-- This is a tuple -->
-          <tupleitem0>
-            <dictitem><!-- This is a dictionary -->
-              <key> Fill me with an xsd:integer </key>
-              <val>
-              <!-- This is a union, the following variants are possible
-                <variantfloat> Fill me with an xsd:decimal </variantfloat>
-                <variantstr> Fill me with an xsd:string </variantstr>
-              -->
-              </val>
-            </dictitem>
-          </tupleitem0>
-          <tupleitem1><!-- This is a set -->
-            <setitem> Fill me with an xsd:boolean </setitem>
-          </tupleitem1>
-        </listitem>
-      </val>
-    </dictitem>
+    <!--This is a dictionary-->
+    <key>
+      <!--This is a tuple-->
+      <tupleitem0>Fill me with an integer</tupleitem0>
+      <tupleitem1>Fill me with an string</tupleitem1>
+    </key>
+    <val>
+      <!--This is a list-->
+      <listitem>
+        <!--This is a tuple-->
+        <tupleitem0>
+          <!--This is a dictionary-->
+          <key>Fill me with an integer</key>
+          <val>
+            <!--This is a union, the following variants are possible, only one can be present-->
+            <variantfloat>Fill me with an decimal</variantfloat>
+            <variantstr>Fill me with an string</variantstr>
+          </val>
+        </tupleitem0>
+        <tupleitem1>
+          <!--This is a set-->
+          <setitem>Fill me with an boolean</setitem>
+        </tupleitem1>
+      </listitem>
+    </val>
   </a>
 </Complex>

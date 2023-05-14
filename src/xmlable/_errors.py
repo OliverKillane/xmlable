@@ -1,5 +1,10 @@
+"""
+Colourful & descriptive errors for xmlable 
+- Clear messages
+- Trace for parsing
+"""
 from dataclasses import dataclass
-from lxml.objectify import ObjectifiedElement
+from typing import Iterable
 from termcolor import colored
 
 
@@ -17,7 +22,7 @@ class XErrorCtx:
         return XErrorCtx(trace=self.trace + [node])
 
 
-# TODO: Custom traceback to point to location in the file
+# TODO: Custom backtrace to point to location in the file
 class XError(Exception):
     def __init__(
         self,
@@ -25,7 +30,7 @@ class XError(Exception):
         what: str,
         why: str,
         ctx: XErrorCtx | None = None,
-        notes: list[str] = [],
+        notes: Iterable[str] = [],
     ):
         super().__init__(colored(short, "red", attrs=["blink"]))
         self.add_note(colored("What:  " + what, "blue"))

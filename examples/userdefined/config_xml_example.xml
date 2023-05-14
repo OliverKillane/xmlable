@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<MyConfig>
+  <foos>3</foos>
+  <conns>
+    <listitem>postgresql://jimmy:pass123@localhost:5432/saul_db?secret=10101</listitem>
+    <listitem>postgresql://bob:username@localhost:5444/other_db</listitem>
+    <listitem>postgresql://steve:pass1234@localhost:5444/other_db?backdoor_key=bingo</listitem>
+  </conns>
+</MyConfig>

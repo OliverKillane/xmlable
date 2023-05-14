@@ -1,3 +1,4 @@
+<?xml version='1.0' encoding='UTF-8'?>
 <BigConfig>
   <machine_ids>
     <dictitem>
@@ -35,7 +36,9 @@
         <ip>58.175.90.125</ip>
         <cores>78</cores>
         <org_owner>
-          <variantNoneType/><!-- This is None -->
+          <variantNoneType>
+            <!--This is None-->
+          </variantNoneType>
         </org_owner>
       </val>
     </dictitem>
