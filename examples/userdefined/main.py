@@ -109,10 +109,13 @@ class PostgresConn(IXmlify):
                 base=f"{prefix}:string",
             )
         else:
+            new_ns = "xs"
+            while new_ns in add_ns:
+                new_ns += "s"
             restrict = Element(
                 f"{XMLSchema}restriction",
-                base="xs:string",
-                nsmap={"xs": XMLURL},
+                base=f"{new_ns}:string",
+                nsmap={new_ns: XMLURL},
             )
 
         return with_child(

@@ -4,11 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "xmlable"
-version = "1.0.1"
+version = "1.1.0"
 authors = [
   { name="Oliver Killane", email="oliverkillane.business@gmail.com" },
 ]
-description = "A tool for generating xsd and xml config from python data classes"
+description = "A decorator for generating xsd, xml and parsers from dataclasses"
 readme = "README.md"
 license = { file = "LICENSE"}
 keywords = ["xml", "xmlschema", "xsd", "lxml"]

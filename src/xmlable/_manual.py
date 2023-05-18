@@ -73,8 +73,11 @@ def manual_xmlify(cls: type) -> type:
 
             toposort(cls, visited, dec_order)
 
-            # Create forward declarations
+            # Create forward declarations, potentially adding to namespaces
             decs: list[_Element] = [dec.xsd_forward(namespaces) for dec in dec_order]  # type: ignore[attr-defined]
+
+            # generate main element (can add to namespaces)
+            main_element = cls_xobject.xsd_out(id, add_ns=namespaces)
 
             return ElementTree(
                 with_children(
@@ -93,7 +96,7 @@ def manual_xmlify(cls: type) -> type:
                         for ns, sloc in imports.items()
                     ]
                     + decs
-                    + [cls_xobject.xsd_out(id, add_ns=namespaces)],
+                    + [main_element],
                 )
             )
 

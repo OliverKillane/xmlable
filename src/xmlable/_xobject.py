@@ -85,12 +85,17 @@ class BasicObj(XObject):
                 attrib=attribs,
             )
         else:
+            # add new namespace, resolve conflicts with extra 's'
+            new_ns = "xs"
+            while new_ns in add_ns:
+                new_ns += "s"
+            add_ns[new_ns] = XMLURL
             return Element(
                 f"{XMLSchema}element",
                 name=name,
-                type=f"xs:{self.type_str}",
+                type=f"{new_ns}:{self.type_str}",
                 attrib=attribs,
-                nsmap={"xs": XMLURL},
+                nsmap={new_ns: XMLURL},
             )
 
     def xml_temp(self, name: str) -> _Element:
