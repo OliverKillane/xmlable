@@ -1,9 +1,6 @@
-name: xmlable pypi publish
+name: xmlable pr check
 
 on:
-  push:
-    branches:
-      - master
   pull_request:
     branches:
       - master
@@ -11,8 +8,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    environment:
-      name: pypi
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -29,6 +24,3 @@ jobs:
         run: hatch run check:lint
       - name: Build
         run: hatch build
-      - name: Publish
-        if: github.ref == 'refs/heads/master'
-        run: hatch publish --user "__token__" --auth ${{ secrets.XMLABLE_TOKEN }}
