@@ -10,21 +10,32 @@ from lxml.objectify import ObjectifiedElement
 
 from xmlable._utils import typename
 from xmlable._lxml_helpers import with_children, XMLSchema
-from xmlable._errors import XError, XErrorCtx
+from xmlable._errors import XError, XErrorCtx, ErrorTypes
 
 
 def validate_manual_class(cls: type):
-    cls_name = typename(cls)
     attrs = {"get_xobject", "xsd_forward", "xsd_dependencies"}
     for attr in attrs:
         if not hasattr(cls, attr):
-            all_attrs = ", ".join(attrs)
-            raise XError(
-                short="Missing Attribute",
-                what=f"The attribute {attr} is missing from {cls_name}",
-                why=f"To be manual_xmlified the attributes: {all_attrs} are required. Try using help(IXmlify)",
-                ctx=XErrorCtx([cls_name]),
-            )
+            raise ErrorTypes.MissingAttribute(cls, attrs, attr)
+
+
+def type_cycle(from_type: type) -> list[type]:
+    # INV: it is an xmlified type for a user define structure
+    cycle: list[type] = []
+
+    def visit_dep(curr: type) -> bool:
+        if curr == from_type or any(
+            visit_dep(dep) for dep in curr.xsd_dependencies()
+        ):
+            cycle.append(curr)
+            return True
+        else:
+            return False
+
+    assert visit_dep(from_type)
+    cycle.append(from_type)
+    return cycle
 
 
 def manual_xmlify(cls: type) -> type:
@@ -64,6 +75,8 @@ def manual_xmlify(cls: type) -> type:
             dec_order: list[type] = []
 
             def toposort(curr: type, visited: set[type], dec_order: list[type]):
+                if curr in visited:
+                    raise ErrorTypes.DependencyCycle(type_cycle(curr))
                 visited.add(curr)
                 deps = curr.xsd_dependencies()  # type: ignore[attr-defined]
                 for d in deps:

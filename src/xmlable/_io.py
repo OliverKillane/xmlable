@@ -11,7 +11,7 @@ from lxml.etree import _ElementTree
 
 from xmlable._utils import typename
 from xmlable._xobject import is_xmlified
-from xmlable._errors import XError
+from xmlable._errors import ErrorTypes
 
 
 def write_file(file_path: str, tree: _ElementTree):
@@ -26,13 +26,7 @@ def parse_file(cls: type, file_path: str) -> Any:
     Parse a file, validate and produce instance of cls
     INV: cls must be an xmlified class
     """
-    cls_name: str = typename(cls)
     if not is_xmlified(cls):
-        raise XError(
-            short="Not Xmlified",
-            what=f"{cls_name} is not xmlified, and hence cannot have an associated parser",
-            why=f"the .xsd(...) method is required to write_xsd",
-            notes=[f"To fix, try:\n@xmlify\n@dataclass\nclass {cls_name}: ..."],
-        )
+        raise ErrorTypes.NotXmlified(cls)
     with open(file=file_path, mode="r") as f:
         return cls.parse(objectify_parse(f).getroot())  # type: ignore[attr-defined]

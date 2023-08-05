@@ -1,0 +1,73 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" id="MyPythonApp" elementFormDefault="qualified">
+  <xs:simpleType name="IPv4Conn">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="(.*):(\d*)\.(\d*)\.(\d*)\.(\d*):(\d*)"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:complexType name="SessionConfig">
+    <xs:sequence>
+      <xs:element name="id" type="xs:integer"/>
+      <xs:element name="app_name" type="xs:string"/>
+      <xs:element name="conn" type="IPv4Conn"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="Inspect">
+    <xs:sequence>
+      <xs:element name="debug_logs" type="xs:boolean"/>
+      <xs:element name="metrics_url" type="xs:string"/>
+      <xs:element name="control_timeout" type="xs:integer"/>
+      <xs:element name="control_port" type="xs:integer"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="UserConfig">
+    <xs:sequence>
+      <xs:element name="name" type="xs:string"/>
+      <xs:element name="auth_token" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="MyPythonApp">
+    <xs:sequence>
+      <xs:element name="mainconf" type="Inspect"/>
+      <xs:element name="sessions">
+        <xs:complexType>
+          <!--this is a dictionary!-->
+          <xs:sequence>
+            <xs:element name="dictitem" minOccurs="0" maxOccurs="unbounded">
+              <xs:complexType>
+                <xs:sequence>
+                  <xs:element name="key" type="xs:string"/>
+                  <xs:element name="val" type="SessionConfig"/>
+                </xs:sequence>
+              </xs:complexType>
+            </xs:element>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="name_to_user">
+        <xs:complexType>
+          <!--this is a dictionary!-->
+          <xs:sequence>
+            <xs:element name="dictitem" minOccurs="0" maxOccurs="unbounded">
+              <xs:complexType>
+                <xs:sequence>
+                  <xs:element name="key" type="xs:string"/>
+                  <xs:element name="val">
+                    <xs:complexType>
+                      <!--this is a union!-->
+                      <xs:sequence>
+                        <xs:element name="variantint" type="xs:integer" minOccurs="0"/>
+                        <xs:element name="variantUserConfig" type="UserConfig" minOccurs="0"/>
+                      </xs:sequence>
+                    </xs:complexType>
+                  </xs:element>
+                </xs:sequence>
+              </xs:complexType>
+            </xs:element>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="MyPythonApp" type="MyPythonApp"/>
+</xs:schema>
