@@ -1,0 +1,53 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<MyPythonApp>
+  <mainconf>
+    <debug_logs>false</debug_logs>
+    <metrics_url>http://metricsapi.corp.org</metrics_url>
+    <control_timeout>23</control_timeout>
+    <control_port>5788</control_port>
+  </mainconf>
+  <sessions>
+    <dictitem>
+      <key>sess_123</key>
+      <val>
+        <id>12334</id>
+        <app_name>myotherapp-1.26.2</app_name>
+        <conn>tcp:1.1.1.23:2307</conn>
+      </val>
+    </dictitem>
+    <dictitem>
+      <key>sess_124</key>
+      <val>
+        <id>12334</id>
+        <app_name>myotherapp-1.26.2</app_name>
+        <conn>tcp:1.1.1.24:2308</conn>
+      </val>
+    </dictitem>
+  </sessions>
+  <name_to_user>
+    <dictitem>
+      <key>peter bread</key>
+      <val>
+        <variantint>1233</variantint>
+      </val>
+    </dictitem>
+    <dictitem>
+      <key>mike rofone</key>
+      <val>
+        <variantUserConfig>
+          <name>mike_rofone_12</name>
+          <auth_token>1224**AAUID</auth_token>
+        </variantUserConfig>
+      </val>
+    </dictitem>
+    <dictitem>
+      <key>authur eight</key>
+      <val>
+        <variantUserConfig>
+          <name>authur_124</name>
+          <auth_token>1223**AAUID</auth_token>
+        </variantUserConfig>
+      </val>
+    </dictitem>
+  </name_to_user>
+</MyPythonApp>

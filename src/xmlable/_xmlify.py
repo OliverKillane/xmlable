@@ -13,11 +13,10 @@ from dataclasses import fields, is_dataclass
 from typing import Any, dataclass_transform
 from lxml.objectify import ObjectifiedElement
 from lxml.etree import Element, _Element
-from xmlable._utils import get
-from xmlable._errors import XErrorCtx, XError
-from xmlable._manual import manual_xmlify
 
-from xmlable._utils import typename
+from xmlable._utils import get, typename
+from xmlable._errors import XError, XErrorCtx, ErrorTypes
+from xmlable._manual import manual_xmlify
 from xmlable._lxml_helpers import with_children, with_child, XMLSchema
 from xmlable._xobject import XObject, gen_xobject
 
@@ -29,58 +28,26 @@ def validate_class(cls: type):
     - Cannot have any members called 'comment' (lxml parses comments as this tag)
     - Cannot have
     """
-    cls_name = typename(cls)
     if not is_dataclass(cls):
-        raise XError(
-            short="Non-Dataclass",
-            what=f"{cls_name} is not a dataclass",
-            why=f"xmlify uses dataclasses to get fields",
-            ctx=XErrorCtx([cls_name]),
-            notes=[f"\nTry:\n@xmlify\n@dataclass\nclass {cls_name}:"],
-        )
+        raise ErrorTypes.NotADataclass(cls)
 
-    reserved_attrs = [
-        "xsd_forward",
-        "xsd_dependencies",
-        "get_xobject",
-        "xsd",
-        "xml",
-        "xml_value",
-        "parse",
-    ]
+    reserved_attrs = ["get_xobject", "xsd_forward", "xsd_dependencies"]
 
     # TODO: cleanup repetition
     for f in fields(cls):
         if f.name in reserved_attrs:
-            raise XError(
-                short=f"Reserved Attribute",
-                what=f"{cls_name}.{f.name} is used by xmlify, so it cannot be a field of the class",
-                why=f"xmlify aguments {cls_name} by adding methods it can then use for xsd, xml generation and parsing",
-                ctx=XErrorCtx([cls_name]),
-            )
+            raise ErrorTypes.ReservedAttribute(cls, f.name)
         elif f.name == "comment":
-            raise XError(
-                short=f"Comment Attribute",
-                what=f"xmlifed classes cannot use comment as an attribute",
-                why=f"comment is used as a tag name for comments by lxml, so comments inserted on xml generation could conflict",
-                ctx=XErrorCtx([cls_name]),
-            )
+            raise ErrorTypes.CommentAttribute(cls)
 
+    # JUSTIFY: Could potentially have added other attributes (of the class,
+    #          rather than a field of an instance as provided by dataclass
+    #          fields)
     for reserved in reserved_attrs:
         if hasattr(cls, reserved):
-            raise XError(
-                short=f"Reserved Attribute",
-                what=f"{cls_name}.{reserved} is used by xmlify, so it cannot be a normal attribute of the class",
-                why=f"xmlify aguments {cls_name} by adding methods it can then use for xsd, xml generation and parsing",
-                ctx=XErrorCtx([cls_name]),
-            )
+            raise ErrorTypes.ReservedAttribute(cls, reserved)
     if hasattr(cls, "comment"):
-        raise XError(
-            short=f"Comment Attribute",
-            what=f"xmlifed classes cannot use comment as an attribute",
-            why=f"comment is used as a tag name for comments by lxml, so comments inserted on xml generation could conflict",
-            ctx=XErrorCtx([cls_name]),
-        )
+        raise ErrorTypes.CommentAttribute(cls)
 
 
 @dataclass_transform()
@@ -133,15 +100,18 @@ def xmlify(cls: type) -> type:
                     if (m_obj := get(obj, m.name)) is not None:
                         parsed[m.name] = xobj.xml_in(m_obj, ctx.next(m.name))
                     else:
-                        raise XError(
-                            short="Non member tag",
-                            what=f"In {obj.tag} {cls_name}.{m.name} could not be found.",
-                            why=f"All members, including {cls_name}.{m.name} must be present",
-                            ctx=ctx,
-                        )
+                        raise ErrorTypes.NonMemberTag(ctx, cls, obj.tag, m.name)
                 return cls(**parsed)
 
         cls_xobject = UserXObject()
+
+        # JUSTIFY: Why ar xsd forward & dependencies not part of xobject?
+        #          - xobject covers the use (not forward decs)
+        #          - we want to present error messages to the user containing
+        #            their types, so xsd dependencies are in terms of python
+        #            types, rather than xobjects
+        #          - forward and dependencies do not apply to the basic types,
+        #            only user types
 
         def xsd_forward(add_ns: dict[str, str]) -> _Element:
             return with_child(

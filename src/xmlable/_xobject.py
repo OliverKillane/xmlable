@@ -12,7 +12,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Callable, get_args
 
 from xmlable._utils import get, typename, firstkey
-from xmlable._errors import XErrorCtx, XError
+from xmlable._errors import XErrorCtx, ErrorTypes
 from xmlable._lxml_helpers import (
     with_text,
     with_child,
@@ -103,24 +103,14 @@ class BasicObj(XObject):
 
     def xml_out(self, name: str, val: Any, ctx: XErrorCtx) -> _Element:
         if not self.validate_fn(val):
-            raise XError(
-                short="Invalid Data",
-                what=f"Could not validate {val} as a valid {self.type_str}",
-                why=f"Produced xml must be valid",
-                ctx=ctx,
-            )
+            raise ErrorTypes.InvalidData(ctx, val, self.type_str)
         return with_text(Element(name), self.convert_fn(val))
 
     def xml_in(self, obj: ObjectifiedElement, ctx: XErrorCtx) -> Any:
         try:
             return self.parse_fn(obj)
         except Exception as e:
-            raise XError(
-                short="Parse Failure",
-                what=f"Failed to parse {obj.text} as a {self.type_str} with error: \n {e}",
-                why=f"This error implies the xml is not validated against the current xsd, or there is a bug in this type's parser",
-                ctx=ctx,
-            )
+            raise ErrorTypes.ParseFailure(ctx, obj.text, self.type_str, e)
 
 
 @dataclass
@@ -188,11 +178,8 @@ class ListObj(XObject):
         parsed = []
         for i, child in enumerate(children(obj)):
             if child.tag != self.list_elem_name:
-                raise XError(
-                    short="Unexpected Tag",
-                    what=f"Found {self.list_elem_name} but found {child.tag}",
-                    why=f"This is a {self.struct_name} that contains 0..n elements of {self.list_elem_name} and no other elements",
-                    ctx=ctx,
+                raise ErrorTypes.UnexpectedTag(
+                    ctx, self.list_elem_name, self.struct_name, child.tag
                 )
             else:
                 parsed.append(
@@ -240,11 +227,8 @@ class StructObj(XObject):
 
     def xml_out(self, name: str, val: Any, ctx: XErrorCtx) -> _Element:
         if len(val) != len(self.objects):
-            raise XError(
-                short="Incorrect Type",
-                what=f"You have provided the values {len(val)} values {val} for {name}, but {name} is a {self.struct_name} that takes only {len(self.objects)} values",
-                why=f"In order to generate xml, the values provided need to be the correct types",
-                ctx=ctx,
+            raise ErrorTypes.IncorrectType(
+                ctx, len(self.objects), self.struct_name, val, name
             )
 
         return with_children(
@@ -263,11 +247,8 @@ class StructObj(XObject):
             zip(children(obj), self.objects)
         ):
             if child.tag != name:
-                raise XError(
-                    short="Incorrect Element Tag",
-                    what=f"While parsing {self.struct_name} {obj.tag} we expected element {i} to be {name}, but found {child.tag}",
-                    why=f"The xml representation for {self.struct_name} requires the correct names in the correct order",
-                    ctx=ctx,
+                raise ErrorTypes.IncorrectElementTag(
+                    ctx, self.struct_name, obj.tag, i, name, child.tag
                 )
             parsed.append((name, xobj.xml_in(child, ctx.next(name))))
         return parsed
@@ -332,11 +313,8 @@ class SetOBj(XObject):
         parsed: set[Any] = set()
         for item in self.list.xml_in(obj, ctx):
             if item in parsed:
-                raise XError(
-                    short="Duplicate item in Set",
-                    what=f"In {obj.tag} the item {item} is present more than once",
-                    why=f"A set can only contain unique items",
-                    ctx=ctx,
+                raise ErrorTypes.DuplicateItem(
+                    ctx, self.struct_name, obj.tag, item
                 )
             parsed.add(item)
         return parsed
@@ -428,11 +406,13 @@ class DictObj(XObject):
         parsed = {}
         for child in children(obj):
             if child.tag != self.item_name:
-                raise XError(
-                    short="Invalid item in dictionary",
-                    what=f"An unexpected item with {child.tag} is in dictionary {obj.tag}",
-                    why=f"Each item must have tag {self.item_name} with children {self.key_name} and {self.val_name}",
-                    ctx=ctx,
+                raise ErrorTypes.InvalidDictionaryItem(
+                    ctx,
+                    self.item_name,
+                    self.key_name,
+                    self.val_name,
+                    child.tag,
+                    obj.tag,
                 )
             else:
                 child_ctx = ctx.next(self.item_name)
@@ -444,11 +424,8 @@ class DictObj(XObject):
                 )
 
                 if k in parsed:
-                    raise XError(
-                        short="Duplicate key in dictionary",
-                        what=f"In dictionary {obj.tag} the key {k} is present more than once",
-                        why=f"Dictionaries must have unique keys",
-                        ctx=ctx,
+                    raise ErrorTypes.DuplicateItem(
+                        ctx, "dictionary", obj.tag, k
                     )
 
                 parsed[k] = v
@@ -534,12 +511,8 @@ class UnionObj(XObject):
                 val_xobj.xml_out(variant_name, val, ctx.next(variant_name)),
             )
         else:
-            types = " | ".join(str(t) for t in self.xobjects.keys())
-            raise XError(
-                short=f"Datatype not in Union",
-                what=f"{name} is a union of {types}, which does not contain {t} (you provided: {val})",
-                why=f"... uuuh, its a union?",
-                ctx=ctx,
+            raise ErrorTypes.InvalidVariant(
+                ctx, name, self.xobjects.keys(), t, val
             )
 
     def xml_in(self, obj: ObjectifiedElement, ctx: XErrorCtx) -> Any:
@@ -547,24 +520,14 @@ class UnionObj(XObject):
         variants = list(children(obj))
 
         if len(variants) != 1:
-            variant_names = ", ".join(v.tag for v in variants)
-            raise XError(
-                short="Multiple union variants present",
-                what=f"variants {variant_names} are present",
-                why=f"A union can only be one variant at a time",
-                ctx=ctx,
-            )
+            raise ErrorTypes.MultipleVariants(ctx, [v.tag for v in variants])
 
         variant = variants[0]
         if (xobj := named.get(variant.tag)) is not None:
             return xobj.xml_in(variant, ctx.next(variant.tag))
         else:
-            named_vars = ", ".join(named.keys())
-            raise XError(
-                short="Invalid Variant",
-                what=f"The union {obj.tag} can contain variants {named_vars}, but you have used {variant}",
-                why=f"Only valid variants can be parsed",
-                ctx=ctx,
+            raise ErrorTypes.ParseInvalidVariant(
+                ctx, obj.tag, named.keys(), variant
             )
 
 
@@ -590,12 +553,7 @@ class NoneObj(XObject):
 
     def xml_out(self, name: str, val: Any, ctx: XErrorCtx) -> _Element:
         if val != None:
-            raise XError(
-                short="None object is not None",
-                what=f"{name} contains value {val} which is not None",
-                why="A None type object can only contain none",
-                ctx=ctx,
-            )
+            raise ErrorTypes.NoneIsSome(ctx, name, val)
 
         return with_child(Element(name), Comment("This is None"))
 
@@ -665,8 +623,4 @@ def gen_xobject(data_type: type, forward_dec: set[type]) -> XObject:
                 forward_dec.add(data_type)
                 return data_type.get_xobject()  # type: ignore[attr-defined, no-any-return]
             else:
-                raise XError(
-                    short="Non XMlified Type",
-                    what=f"You attempted to use {t_name} in an xmlified class, but {t_name} is not xmlified",
-                    why=f"All types usin in an xmlified class must be xmlified",
-                )
+                raise ErrorTypes.NonXMlifiedType(t_name)

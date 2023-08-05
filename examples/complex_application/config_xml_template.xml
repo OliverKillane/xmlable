@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<MyPythonApp>
+  <mainconf>
+    <debug_logs>Fill me with an boolean</debug_logs>
+    <metrics_url>Fill me with an string</metrics_url>
+    <control_timeout>Fill me with an integer</control_timeout>
+    <control_port>Fill me with an integer</control_port>
+  </mainconf>
+  <sessions>
+    <!--This is a dictionary-->
+    <key>Fill me with an string</key>
+    <val>
+      <id>Fill me with an integer</id>
+      <app_name>Fill me with an string</app_name>
+      <conn>Insert connection string here proto:xxx.xxx.xxx.xxx:pppp</conn>
+    </val>
+  </sessions>
+  <name_to_user>
+    <!--This is a dictionary-->
+    <key>Fill me with an string</key>
+    <val>
+      <!--This is a union, the following variants are possible, only one can be present-->
+      <variantint>Fill me with an integer</variantint>
+      <variantUserConfig>
+        <name>Fill me with an string</name>
+        <auth_token>Fill me with an string</auth_token>
+      </variantUserConfig>
+    </val>
+  </name_to_user>
+</MyPythonApp>

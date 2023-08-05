@@ -122,19 +122,24 @@ In this case an error is raised
 ```bash
 git clone # this project
 
-python3.11 -m venv ./.venv
+# Can use hatch to build, run
+hatch run check:lint
+hatch run check:test
+hatch run check:typecheck
 
-source ./.venv/bin/activate # activate virtual environment
+# Alternatively can just create a normal env
+python3.11 -m venv .venv
+source .venv/bin/activate # activate virtual environment
 
-pip install .      # install this project in the venv
-pip install .[dev] # install optional dev dependencies (mypy, black and pytest)
+pip install -e .      # install this project in the venv
+pip install -e .[dev] # install optional dev dependencies (mypy, black and pytest)
 
 black . # to reformat
 mypy    # type check
 pytest  # to run tests
 ```
 
-[Hatch](https://hatch.pypa.io/) is used for build.
+[Hatch](https://hatch.pypa.io/) is used for build, test and pypi publish.
 
 ## To Improve
 
