@@ -18,7 +18,6 @@ jobs:
       - name: Test
         run: hatch run check:test
       - name: typecheck
-        continue-on-error: true
         run: hatch run check:typecheck
       - name: lint
         run: hatch run check:lint
