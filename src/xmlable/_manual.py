@@ -26,7 +26,7 @@ def type_cycle(from_type: type) -> list[type]:
 
     def visit_dep(curr: type) -> bool:
         if curr == from_type or any(
-            visit_dep(dep) for dep in curr.xsd_dependencies()
+            visit_dep(dep) for dep in curr.xsd_dependencies()  # type: ignore[attr-defined]
         ):
             cycle.append(curr)
             return True
