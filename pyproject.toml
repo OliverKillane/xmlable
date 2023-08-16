@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "xmlable"
-version = "1.2.0"
+version = "1.2.1"
 authors = [
   { name="Oliver Killane", email="oliverkillane.business@gmail.com" },
 ]
@@ -81,4 +81,4 @@ features = ["dev"]
 [tool.hatch.envs.check.scripts]
 test = "pytest"
 lint = "black ."
-typecheck = "mypy --check-untyped-defs"
+typecheck = "mypy src --exclude examples/"

@@ -47,6 +47,7 @@ class XError(Exception):
 
 
 class ErrorTypes:
+    @staticmethod
     def NonXMlifiedType(t_name: str) -> XError:
         return XError(
             short="Non XMlified Type",
@@ -54,6 +55,7 @@ class ErrorTypes:
             why=f"All types used in an xmlified class must be xmlified",
         )
 
+    @staticmethod
     def InvalidData(ctx: XErrorCtx, val: Any, t_name: str) -> XError:
         return XError(
             short="Invalid Data",
@@ -62,8 +64,9 @@ class ErrorTypes:
             ctx=ctx,
         )
 
+    @staticmethod
     def ParseFailure(
-        ctx: XErrorCtx, text: str, t_name: str, caught: Exception
+        ctx: XErrorCtx, text: str | None, t_name: str, caught: Exception
     ) -> XError:
         return XError(
             short="Parse Failure",
@@ -72,6 +75,7 @@ class ErrorTypes:
             ctx=ctx,
         )
 
+    @staticmethod
     def UnexpectedTag(
         ctx: XErrorCtx, expected_name: str, struct_name: str, tag_found: str
     ) -> XError:
@@ -82,6 +86,7 @@ class ErrorTypes:
             ctx=ctx,
         )
 
+    @staticmethod
     def IncorrectType(
         ctx: XErrorCtx, expected_len: int, struct_name: str, val: Any, name: str
     ) -> XError:
@@ -92,6 +97,7 @@ class ErrorTypes:
             ctx=ctx,
         )
 
+    @staticmethod
     def IncorrectElementTag(
         ctx: XErrorCtx,
         struct_name: str,
@@ -107,6 +113,7 @@ class ErrorTypes:
             ctx=ctx,
         )
 
+    @staticmethod
     def DuplicateItem(
         ctx: XErrorCtx, struct_name: str, tag: str, item: str
     ) -> XError:
@@ -117,6 +124,7 @@ class ErrorTypes:
             ctx=ctx,
         )
 
+    @staticmethod
     def InvalidDictionaryItem(
         ctx: XErrorCtx,
         expected_tag: str,
@@ -132,11 +140,12 @@ class ErrorTypes:
             ctx=ctx,
         )
 
+    @staticmethod
     def InvalidVariant(
         ctx: XErrorCtx,
         name: str,
         expected_types: list[type],
-        found_type: type,
+        found_type: type | None,
         found_value: Any,
     ) -> XError:
         types = " | ".join(map(str, expected_types))
@@ -147,6 +156,7 @@ class ErrorTypes:
             ctx=ctx,
         )
 
+    @staticmethod
     def MultipleVariants(ctx: XErrorCtx, variant_names: list[str]) -> XError:
         return XError(
             short="Multiple union variants present",
@@ -155,6 +165,7 @@ class ErrorTypes:
             ctx=ctx,
         )
 
+    @staticmethod
     def ParseInvalidVariant(
         ctx: XErrorCtx, tag: str, named_variants: list[str], found_variant: str
     ) -> XError:
@@ -165,6 +176,7 @@ class ErrorTypes:
             ctx=ctx,
         )
 
+    @staticmethod
     def NoneIsSome(ctx: XErrorCtx, name: str, val: Any) -> XError:
         return XError(
             short="None object is not None",
@@ -173,6 +185,7 @@ class ErrorTypes:
             ctx=ctx,
         )
 
+    @staticmethod
     def NotADataclass(cls: type) -> XError:
         cls_name: str = typename(cls)
         return XError(
@@ -183,6 +196,7 @@ class ErrorTypes:
             notes=[f"\nTry:\n@xmlify\n@dataclass\nclass {cls_name}:"],
         )
 
+    @staticmethod
     def ReservedAttribute(cls: type, attr_name: str) -> XError:
         cls_name: str = typename(cls)
         return XError(
@@ -192,6 +206,7 @@ class ErrorTypes:
             ctx=XErrorCtx([cls_name]),
         )
 
+    @staticmethod
     def CommentAttribute(cls: type) -> XError:
         cls_name: str = typename(cls)
         return XError(
@@ -201,6 +216,7 @@ class ErrorTypes:
             ctx=XErrorCtx([cls_name]),
         )
 
+    @staticmethod
     def NonMemberTag(ctx: XErrorCtx, cls: type, tag: str, name: str) -> XError:
         cls_name: str = typename(cls)
         return XError(
@@ -210,6 +226,7 @@ class ErrorTypes:
             ctx=ctx,
         )
 
+    @staticmethod
     def MissingAttribute(
         cls: type, required_attrs: set[str], missing_attr: str
     ) -> XError:
@@ -221,6 +238,7 @@ class ErrorTypes:
             ctx=XErrorCtx([cls_name]),
         )
 
+    @staticmethod
     def DependencyCycle(cycle: list[type]) -> XError:
         return XError(
             short="Dependency Cycle in XSD",
@@ -228,6 +246,7 @@ class ErrorTypes:
             why="The XSDs for classes are written to the .xsd file in dependency order",
         )
 
+    @staticmethod
     def NotXmlified(cls: type) -> XError:
         cls_name: str = typename(cls)
         return XError(

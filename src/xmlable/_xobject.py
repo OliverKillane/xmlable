@@ -313,9 +313,7 @@ class SetOBj(XObject):
         parsed: set[Any] = set()
         for item in self.list.xml_in(obj, ctx):
             if item in parsed:
-                raise ErrorTypes.DuplicateItem(
-                    ctx, self.struct_name, obj.tag, item
-                )
+                raise ErrorTypes.DuplicateItem(ctx, "set", obj.tag, item)
             parsed.add(item)
         return parsed
 
@@ -512,7 +510,7 @@ class UnionObj(XObject):
             )
         else:
             raise ErrorTypes.InvalidVariant(
-                ctx, name, self.xobjects.keys(), t, val
+                ctx, name, list(self.xobjects.keys()), t, val
             )
 
     def xml_in(self, obj: ObjectifiedElement, ctx: XErrorCtx) -> Any:
@@ -527,7 +525,7 @@ class UnionObj(XObject):
             return xobj.xml_in(variant, ctx.next(variant.tag))
         else:
             raise ErrorTypes.ParseInvalidVariant(
-                ctx, obj.tag, named.keys(), variant
+                ctx, str(obj.tag), list(named.keys()), str(variant)
             )
 
 
