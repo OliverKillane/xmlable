@@ -4,3 +4,9 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    commit-message:
+      prefix: "update deps"
+      prefix-development: "update dev deps"
+      include: "scope"
+    reviewers:
+      - "oliverkillane"
