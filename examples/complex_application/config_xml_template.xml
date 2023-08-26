@@ -8,23 +8,27 @@
   </Mainconf>
   <Sessions>
     <!--This is a dictionary-->
-    <Key>Fill me with an string</Key>
-    <Val>
-      <Id>Fill me with an integer</Id>
-      <AppName>Fill me with an string</AppName>
-      <Conn>Insert connection string here proto:xxx.xxx.xxx.xxx:pppp</Conn>
-    </Val>
+    <Item>
+      <Key>Fill me with an string</Key>
+      <Val>
+        <Id>Fill me with an integer</Id>
+        <AppName>Fill me with an string</AppName>
+        <Conn>Insert connection string here proto:xxx.xxx.xxx.xxx:pppp</Conn>
+      </Val>
+    </Item>
   </Sessions>
   <NameToUser>
     <!--This is a dictionary-->
-    <Key>Fill me with an string</Key>
-    <Val>
-      <!--This is a union, the following variants are possible, only one can be present-->
-      <Int>Fill me with an integer</Int>
-      <UserConfig>
-        <Name>Fill me with an string</Name>
-        <AuthToken>Fill me with an string</AuthToken>
-      </UserConfig>
-    </Val>
+    <Item>
+      <Key>Fill me with an string</Key>
+      <Val>
+        <!--This is a union, the following variants are possible, only one can be present-->
+        <Int>Fill me with an integer</Int>
+        <UserConfig>
+          <Name>Fill me with an string</Name>
+          <AuthToken>Fill me with an string</AuthToken>
+        </UserConfig>
+      </Val>
+    </Item>
   </NameToUser>
 </MyPythonApp>

@@ -15,7 +15,9 @@ from xmlable._errors import ErrorTypes
 
 
 def write_file(file_path: str | Path, tree: _ElementTree):
-    print(colored(f"Overwriting {file_path}", "red", attrs=["blink"]))
+    print(
+        colored(f"Overwriting {file_path}", "red", attrs=["blink"]), end="..."
+    )
     with open(file=file_path, mode="wb") as f:
         tree.write(f, xml_declaration=True, encoding="utf-8", pretty_print=True)
     print(colored(f"Complete!", "green", attrs=["blink"]))

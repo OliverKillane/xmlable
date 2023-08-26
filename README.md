@@ -126,6 +126,7 @@ git clone # this project
 hatch run check:lint
 hatch run check:test
 hatch run check:typecheck
+hatch run check:examplegen
 
 # Alternatively can just create a normal env
 python3.11 -m venv .venv

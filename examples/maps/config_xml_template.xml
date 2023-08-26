@@ -2,21 +2,23 @@
 <BigConfig>
   <MachineIds>
     <!--This is a dictionary-->
-    <Key>
-      <Location>Fill me with an string</Location>
-      <ServName>Fill me with an string</ServName>
-    </Key>
-    <Val>
-      <Ip>Fill me with an string</Ip>
-      <Cores>Fill me with an integer</Cores>
-      <OrgOwner>
-        <!--This is a union, the following variants are possible, only one can be present-->
-        <Int>Fill me with an integer</Int>
-        <NoneType>
-          <!--This is None-->
-        </NoneType>
-      </OrgOwner>
-    </Val>
+    <Item>
+      <Key>
+        <Location>Fill me with an string</Location>
+        <ServName>Fill me with an string</ServName>
+      </Key>
+      <Val>
+        <Ip>Fill me with an string</Ip>
+        <Cores>Fill me with an integer</Cores>
+        <OrgOwner>
+          <!--This is a union, the following variants are possible, only one can be present-->
+          <Int>Fill me with an integer</Int>
+          <NoneType>
+            <!--This is None-->
+          </NoneType>
+        </OrgOwner>
+      </Val>
+    </Item>
   </MachineIds>
   <ShowLogs>Fill me with an boolean</ShowLogs>
 </BigConfig>

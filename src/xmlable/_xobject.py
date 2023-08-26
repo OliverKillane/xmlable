@@ -374,8 +374,13 @@ class DictObj(XObject):
             Element(name),
             [
                 Comment("This is a dictionary"),
-                self.key_xobject.xml_temp(self.key_name),
-                self.val_xobject.xml_temp(self.val_name),
+                with_children(
+                    Element(self.item_name),
+                    [
+                        self.key_xobject.xml_temp(self.key_name),
+                        self.val_xobject.xml_temp(self.val_name),
+                    ],
+                ),
             ],
         )
 
@@ -427,7 +432,7 @@ class DictObj(XObject):
                     )
 
                 parsed[k] = v
-                # Check for other tags? Fail better?
+                # TODO: Check for other tags? Fail better?
         return parsed
 
 
