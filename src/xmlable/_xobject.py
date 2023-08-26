@@ -3,7 +3,7 @@ XObjects are an intermediate representation for python types -> xsd/xml
 - Produced by @xmlify decorated classes, and by gen_xobject
 - Associated xsd, xml and parsing 
 """
-
+from humps import pascalize
 from dataclasses import dataclass
 from types import NoneType, UnionType
 from lxml.objectify import ObjectifiedElement
@@ -121,7 +121,7 @@ class ListObj(XObject):
 
     item_xobject: XObject
     list_elem_name: str
-    struct_name: str = "list"
+    struct_name: str = "List"
 
     def xsd_out(
         self,
@@ -195,7 +195,7 @@ class StructObj(XObject):
     """An order list of key-value pairs"""  # TODO: make objects variable length tuple
 
     objects: list[tuple[str, XObject]]
-    struct_name: str = "struct"
+    struct_name: str = "Struct"
 
     def xsd_out(
         self,
@@ -260,12 +260,12 @@ class TupleObj(XObject):
     def __init__(
         self,
         objects: tuple[XObject, ...],
-        elem_gen: Callable[[int], str] = lambda i: f"tupleitem{i}",
+        elem_gen: Callable[[int], str] = lambda i: f"Item-{i+1}",
     ):
         self.elem_gen = elem_gen
         self.struct: StructObj = StructObj(
             [(self.elem_gen(i), xobj) for i, xobj in enumerate(objects)],
-            struct_name="tuple",
+            struct_name="Tuple",
         )
 
     def xsd_out(
@@ -324,9 +324,9 @@ class DictObj(XObject):
 
     key_xobject: XObject
     val_xobject: XObject
-    key_name: str = "key"
-    val_name: str = "val"
-    item_name: str = "dictitem"
+    key_name: str = "Key"
+    val_name: str = "Val"
+    item_name: str = "Item"
 
     def xsd_out(
         self,
@@ -458,7 +458,7 @@ class UnionObj(XObject):
     """A variant, can be one of several different types"""
 
     xobjects: dict[type, XObject]
-    elem_gen: Callable[[type], str] = lambda t: f"variant{typename(t)}"
+    elem_gen: Callable[[type], str] = lambda t: pascalize(typename(t))
 
     def xsd_out(
         self,
@@ -603,7 +603,8 @@ def gen_xobject(data_type: type, forward_dec: set[type]) -> XObject:
         if t_name == "list":
             (item_type,) = get_args(data_type)
             return ListObj(
-                gen_xobject(item_type, forward_dec), typename(item_type)
+                gen_xobject(item_type, forward_dec),
+                pascalize(typename(item_type)),
             )
         elif t_name == "dict":
             key_type, val_type = get_args(data_type)
@@ -618,7 +619,8 @@ def gen_xobject(data_type: type, forward_dec: set[type]) -> XObject:
         elif t_name == "set":
             (item_type,) = get_args(data_type)
             return SetOBj(
-                gen_xobject(item_type, forward_dec), typename(item_type)
+                gen_xobject(item_type, forward_dec),
+                pascalize(typename(item_type)),
             )
         else:
             if is_xmlified(data_type):

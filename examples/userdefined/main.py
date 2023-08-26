@@ -1,8 +1,11 @@
 from dataclasses import dataclass
+from pathlib import Path
 from pgconn import PostgresConn
 
 # public/external interface
 from xmlable import xmlify, write_file, parse_file
+
+THIS_DIR = Path(__file__).parent
 
 
 @xmlify
@@ -12,8 +15,8 @@ class MyConfig:
     conns: list[PostgresConn]
 
 
-write_file("config.xsd", MyConfig.xsd())
-write_file("config_xml_template.xml", MyConfig.xml())
+write_file(THIS_DIR / "config.xsd", MyConfig.xsd())
+write_file(THIS_DIR / "config_xml_template.xml", MyConfig.xml())
 
 original: MyConfig = MyConfig(
     foos=3,
@@ -45,8 +48,10 @@ original: MyConfig = MyConfig(
     ],
 )
 
-write_file("config_xml_example.xml", original.xml_value())
+write_file(THIS_DIR / "config_xml_example.xml", original.xml_value())
 
-read_config: MyConfig = parse_file(MyConfig, "config_xml_example.xml")
+read_config: MyConfig = parse_file(
+    MyConfig, THIS_DIR / "config_xml_example.xml"
+)
 
 assert read_config == original

@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <MyConfig>
-  <foos>3</foos>
-  <conns>
+  <Foos>3</Foos>
+  <Conns>
     <PostgresConn>postgresql://jimmy:pass123@localhost:5432/saul_db?secret=10101</PostgresConn>
     <PostgresConn>postgresql://bob:username@localhost:5444/other_db</PostgresConn>
     <PostgresConn>postgresql://steve:pass1234@localhost:5444/other_db?backdoor_key=bingo</PostgresConn>
-  </conns>
+  </Conns>
 </MyConfig>

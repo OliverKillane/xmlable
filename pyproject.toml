@@ -18,7 +18,12 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-dependencies = ["lxml==4.9.3", "lxml-stubs==0.4.0", "termcolor==2.3.0"]
+dependencies = [
+    "lxml==4.9.3",
+    "lxml-stubs==0.4.0",
+    "termcolor==2.3.0",
+    "pyhumps==3.8.0",
+]
 
 [project.urls]
 "Homepage" = "https://github.com/OliverKillane/xmlable"
@@ -64,7 +69,7 @@ exclude = '''(
 features = ["dev"]
 
 [tool.hatch.envs.check.scripts]
-examplegen = 'for dir in examples/*; do [ -d "$dir" ] && cd "$dir" && [ -f main.py ] && python main.py; done'
+examplegen = "for f in examples/*/main.py; do python $f; done"
 test = "pytest"
 lint = "black ."
 typecheck = "mypy src --exclude examples/"

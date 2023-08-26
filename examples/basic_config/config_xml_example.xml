@@ -1,12 +1,12 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <Config>
-  <date>31/02/2023</date>
-  <number_of_cores>48</number_of_cores>
-  <codes>
-    <int>101</int>
-    <int>345</int>
-    <int>42</int>
-    <int>67</int>
-  </codes>
-  <show_logs>false</show_logs>
+  <Date>31/02/2023</Date>
+  <NumberOfCores>48</NumberOfCores>
+  <Codes>
+    <Int>101</Int>
+    <Int>345</Int>
+    <Int>42</Int>
+    <Int>67</Int>
+  </Codes>
+  <ShowLogs>false</ShowLogs>
 </Config>

@@ -2,44 +2,44 @@
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" id="Complex" elementFormDefault="qualified">
   <xs:complexType name="Complex">
     <xs:sequence>
-      <xs:element name="a">
+      <xs:element name="A">
         <xs:complexType>
           <!--this is a dictionary!-->
           <xs:sequence>
-            <xs:element name="dictitem" minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="Item" minOccurs="0" maxOccurs="unbounded">
               <xs:complexType>
                 <xs:sequence>
-                  <xs:element name="key">
+                  <xs:element name="Key">
                     <xs:complexType>
                       <xs:sequence>
-                        <!--This is a tuple-->
-                        <xs:element name="tupleitem0" type="xs:integer"/>
-                        <xs:element name="tupleitem1" type="xs:string"/>
+                        <!--This is a Tuple-->
+                        <xs:element name="Item-1" type="xs:integer"/>
+                        <xs:element name="Item-2" type="xs:string"/>
                       </xs:sequence>
                     </xs:complexType>
                   </xs:element>
-                  <xs:element name="val">
+                  <xs:element name="Val">
                     <xs:complexType>
-                      <!--This is a list-->
+                      <!--This is a List-->
                       <xs:sequence>
-                        <xs:element name="tuple" minOccurs="0" maxOccurs="unbounded">
+                        <xs:element name="Tuple" minOccurs="0" maxOccurs="unbounded">
                           <xs:complexType>
                             <xs:sequence>
-                              <!--This is a tuple-->
-                              <xs:element name="tupleitem0">
+                              <!--This is a Tuple-->
+                              <xs:element name="Item-1">
                                 <xs:complexType>
                                   <!--this is a dictionary!-->
                                   <xs:sequence>
-                                    <xs:element name="dictitem" minOccurs="0" maxOccurs="unbounded">
+                                    <xs:element name="Item" minOccurs="0" maxOccurs="unbounded">
                                       <xs:complexType>
                                         <xs:sequence>
-                                          <xs:element name="key" type="xs:integer"/>
-                                          <xs:element name="val">
+                                          <xs:element name="Key" type="xs:integer"/>
+                                          <xs:element name="Val">
                                             <xs:complexType>
                                               <!--this is a union!-->
                                               <xs:sequence>
-                                                <xs:element name="variantfloat" type="xs:decimal" minOccurs="0"/>
-                                                <xs:element name="variantstr" type="xs:string" minOccurs="0"/>
+                                                <xs:element name="Float" type="xs:decimal" minOccurs="0"/>
+                                                <xs:element name="Str" type="xs:string" minOccurs="0"/>
                                               </xs:sequence>
                                             </xs:complexType>
                                           </xs:element>
@@ -49,11 +49,11 @@
                                   </xs:sequence>
                                 </xs:complexType>
                               </xs:element>
-                              <xs:element name="tupleitem1">
+                              <xs:element name="Item-2">
                                 <xs:complexType>
                                   <!--This is a set-->
                                   <xs:sequence>
-                                    <xs:element name="bool" type="xs:boolean" minOccurs="0" maxOccurs="unbounded"/>
+                                    <xs:element name="Bool" type="xs:boolean" minOccurs="0" maxOccurs="unbounded"/>
                                   </xs:sequence>
                                 </xs:complexType>
                               </xs:element>

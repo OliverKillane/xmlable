@@ -1,30 +1,30 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <Complex>
-  <a>
+  <A>
     <!--This is a dictionary-->
-    <key>
-      <!--This is a tuple-->
-      <tupleitem0>Fill me with an integer</tupleitem0>
-      <tupleitem1>Fill me with an string</tupleitem1>
-    </key>
-    <val>
-      <!--This is a list-->
-      <tuple>
-        <!--This is a tuple-->
-        <tupleitem0>
+    <Key>
+      <!--This is a Tuple-->
+      <Item-1>Fill me with an integer</Item-1>
+      <Item-2>Fill me with an string</Item-2>
+    </Key>
+    <Val>
+      <!--This is a List-->
+      <Tuple>
+        <!--This is a Tuple-->
+        <Item-1>
           <!--This is a dictionary-->
-          <key>Fill me with an integer</key>
-          <val>
+          <Key>Fill me with an integer</Key>
+          <Val>
             <!--This is a union, the following variants are possible, only one can be present-->
-            <variantfloat>Fill me with an decimal</variantfloat>
-            <variantstr>Fill me with an string</variantstr>
-          </val>
-        </tupleitem0>
-        <tupleitem1>
+            <Float>Fill me with an decimal</Float>
+            <Str>Fill me with an string</Str>
+          </Val>
+        </Item-1>
+        <Item-2>
           <!--This is a set-->
-          <bool>Fill me with an boolean</bool>
-        </tupleitem1>
-      </tuple>
-    </val>
-  </a>
+          <Bool>Fill me with an boolean</Bool>
+        </Item-2>
+      </Tuple>
+    </Val>
+  </A>
 </Complex>
