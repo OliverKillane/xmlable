@@ -28,6 +28,7 @@ class IPv4Conn(IXmlify):
     ip: tuple[int, int, int, int]
     port: int
 
+    @staticmethod
     def get_xobject() -> XObject:
         class XIPv4Conn(XObject):
             def xsd_out(
@@ -53,7 +54,8 @@ class IPv4Conn(IXmlify):
                 return with_text(Element(name), conn)
 
             def xml_in(self, obj: ObjectifiedElement, ctx: XErrorCtx) -> Any:
-                m = re.match(CONN_PATTERN, obj.text)
+                conn_str: str = obj.text if obj.text is not None else ""
+                m = re.match(CONN_PATTERN, conn_str)
                 if m is not None:
                     (
                         proto,
@@ -79,6 +81,7 @@ class IPv4Conn(IXmlify):
 
         return XIPv4Conn()
 
+    @staticmethod
     def xsd_forward(add_ns: dict[str, str]) -> _Element:
         # check if the XML namespace has been additionally declared
         # if so we should use this prefix for type
@@ -105,5 +108,6 @@ class IPv4Conn(IXmlify):
             ),
         )
 
+    @staticmethod
     def xsd_dependencies() -> set[type]:
         return {IPv4Conn}

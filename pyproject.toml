@@ -68,8 +68,14 @@ exclude = '''(
 [tool.hatch.envs.check]
 features = ["dev"]
 
+[tool.hatch.envs.auto]
+features = ["dev"]
+
 [tool.hatch.envs.check.scripts]
-examplegen = "for f in examples/*/main.py; do python $f; done"
 test = "pytest"
+lint = "black . --check"
+typecheck = "mypy src --exclude examples/ && for f in examples/*/main.py; do mypy $f; done"
+
+[tool.hatch.envs.auto.scripts]
+examplegen = "for f in examples/*/main.py; do python $f; done"
 lint = "black ."
-typecheck = "mypy src --exclude examples/"

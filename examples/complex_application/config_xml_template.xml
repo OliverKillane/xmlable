@@ -6,7 +6,7 @@
     <ControlTimeout>Fill me with an integer</ControlTimeout>
     <ControlPort>Fill me with an integer</ControlPort>
   </Mainconf>
-  <Sessions>
+  <NamedSessions>
     <!--This is a dictionary-->
     <Item>
       <Key>Fill me with an string</Key>
@@ -16,7 +16,15 @@
         <Conn>Insert connection string here proto:xxx.xxx.xxx.xxx:pppp</Conn>
       </Val>
     </Item>
-  </Sessions>
+  </NamedSessions>
+  <ExtraSessions>
+    <!--This is a List-->
+    <SessionConfig>
+      <Id>Fill me with an integer</Id>
+      <AppName>Fill me with an string</AppName>
+      <Conn>Insert connection string here proto:xxx.xxx.xxx.xxx:pppp</Conn>
+    </SessionConfig>
+  </ExtraSessions>
   <NameToUser>
     <!--This is a dictionary-->
     <Item>

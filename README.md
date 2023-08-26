@@ -16,7 +16,7 @@ write_file("config.xsd", Config.xsd())
 write_file("config_xml_template.xml", Config.xml())
 
 original = Config(
-    date="31/02/2023",  # no validation yet :(
+    date="31/02/2023",
     number_of_cores=48,
     codes=[101, 345, 42, 67],
     show_logs=False,
@@ -112,7 +112,7 @@ For example:
 class GenericUnion:
     u: dict[int, float] | dict[int, str]
 
-GenericUnion(u={}) # which variant in the xml should {} have??
+GenericUnion(u={}) # which variant in the xml should {} have??named_
 ```
 
 In this case an error is raised
@@ -123,10 +123,12 @@ In this case an error is raised
 git clone # this project
 
 # Can use hatch to build, run
-hatch run check:lint
-hatch run check:test
-hatch run check:typecheck
-hatch run check:examplegen
+hatch run check:test      # run tests/
+hatch run check:lint      # check formatting
+hatch run check:typecheck # mypy for src/ and all examples
+
+hatch run auto:examplegen # regenerate the example code
+hatch run auto:lint       # format code
 
 # Alternatively can just create a normal env
 python3.11 -m venv .venv

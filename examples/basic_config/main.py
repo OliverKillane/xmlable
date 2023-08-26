@@ -1,6 +1,12 @@
 from dataclasses import dataclass
 from pathlib import Path
-from xmlable import xmlify, write_file, parse_file
+from xmlable import (
+    xmlify,
+    parse_file,
+    write_xml_value,
+    write_xml_template,
+    write_xsd,
+)
 
 THIS_DIR = Path(__file__).parent
 
@@ -14,16 +20,16 @@ class Config:
     show_logs: bool
 
 
-write_file(THIS_DIR / "config.xsd", Config.xsd())
-write_file(THIS_DIR / "config_xml_template.xml", Config.xml())
+write_xsd(THIS_DIR / "config.xsd", Config)
+write_xml_template(THIS_DIR / "config_xml_template.xml", Config)
 
 original = Config(
-    date="31/02/2023",  # no validation yet :(
+    date="31/02/2023",
     number_of_cores=48,
     codes=[101, 345, 42, 67],
     show_logs=False,
 )
-write_file(THIS_DIR / "config_xml_example.xml", original.xml_value())
+write_xml_value(THIS_DIR / "config_xml_example.xml", original)
 
 read_config: Config = parse_file(Config, THIS_DIR / "config_xml_example.xml")
 

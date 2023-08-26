@@ -33,6 +33,7 @@ class PostgresConn(IXmlify):
     dbname: str
     options: dict[str, str]
 
+    @staticmethod
     def get_xobject() -> XObject:
         class PGConn(XObject):
             def xsd_out(
@@ -62,7 +63,8 @@ class PostgresConn(IXmlify):
                 return with_text(Element(name), conn)
 
             def xml_in(self, obj: ObjectifiedElement, ctx: XErrorCtx) -> Any:
-                m = re.match(CONN_PATTERN, obj.text)
+                conn_str: str = obj.text if obj.text is not None else ""
+                m = re.match(CONN_PATTERN, conn_str)
                 if m is not None:
                     (
                         user,
@@ -97,6 +99,7 @@ class PostgresConn(IXmlify):
 
         return PGConn()
 
+    @staticmethod
     def xsd_forward(add_ns: dict[str, str]) -> _Element:
         # check if the XML namespace has been additionally declared
         # if so we should use this prefix for type
@@ -123,5 +126,6 @@ class PostgresConn(IXmlify):
             ),
         )
 
+    @staticmethod
     def xsd_dependencies() -> set[type]:
         return {PostgresConn}

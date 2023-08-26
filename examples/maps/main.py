@@ -1,6 +1,12 @@
 from dataclasses import dataclass
 from pathlib import Path
-from xmlable import xmlify, write_file, parse_file
+from xmlable import (
+    xmlify,
+    parse_file,
+    write_xml_value,
+    write_xml_template,
+    write_xsd,
+)
 
 THIS_DIR = Path(__file__).parent
 
@@ -27,8 +33,8 @@ class BigConfig:
     show_logs: bool
 
 
-write_file(THIS_DIR / "config.xsd", BigConfig.xsd())
-write_file(THIS_DIR / "config_xml_template.xml", BigConfig.xml())
+write_xsd(THIS_DIR / "config.xsd", BigConfig)
+write_xml_template(THIS_DIR / "config_xml_template.xml", BigConfig)
 
 original: BigConfig = BigConfig(
     machine_ids={
@@ -39,7 +45,7 @@ original: BigConfig = BigConfig(
     show_logs=True,
 )
 
-write_file(THIS_DIR / "config_xml_example.xml", original.xml_value())
+write_xml_value(THIS_DIR / "config_xml_example.xml", original)
 
 read_config: BigConfig = parse_file(
     BigConfig, THIS_DIR / "config_xml_example.xml"

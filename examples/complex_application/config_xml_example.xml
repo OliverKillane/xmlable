@@ -6,7 +6,7 @@
     <ControlTimeout>23</ControlTimeout>
     <ControlPort>5788</ControlPort>
   </Mainconf>
-  <Sessions>
+  <NamedSessions>
     <Item>
       <Key>sess_123</Key>
       <Val>
@@ -23,7 +23,19 @@
         <Conn>tcp:1.1.1.24:2308</Conn>
       </Val>
     </Item>
-  </Sessions>
+  </NamedSessions>
+  <ExtraSessions>
+    <SessionConfig>
+      <Id>12335</Id>
+      <AppName>extra_app-3.15.1</AppName>
+      <Conn>quic:1.1.1.25:2307</Conn>
+    </SessionConfig>
+    <SessionConfig>
+      <Id>14435</Id>
+      <AppName>extra_app-3.15.1</AppName>
+      <Conn>quic:1.1.1.26:2307</Conn>
+    </SessionConfig>
+  </ExtraSessions>
   <NameToUser>
     <Item>
       <Key>peter bread</Key>

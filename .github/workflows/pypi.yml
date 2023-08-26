@@ -6,7 +6,7 @@ on:
       - master
 
 jobs:
-  build:
+  check:
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -19,9 +19,9 @@ jobs:
         run: pipx install hatch
       - name: Test
         run: hatch run check:test
-      - name: typecheck
+      - name: Typecheck
         run: hatch run check:typecheck
-      - name: lint
+      - name: Lint
         run: hatch run check:lint
       - name: Build
         run: hatch build
