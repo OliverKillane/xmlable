@@ -48,4 +48,7 @@ def firstkey(d: dict[X, Y], val: Y) -> X | None:
 
 
 def typename(t: type) -> str:
-    return t.__name__
+    if t is None:
+        return "None"
+    else:
+        return t.__name__

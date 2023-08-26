@@ -3,6 +3,6 @@
   <foos>Fill me with an integer</foos>
   <conns>
     <!--This is a list-->
-    <listitem>Insert connection string here postgresql://user:password@netloc:port/dbname?param1=value1&amp;...</listitem>
+    <PostgresConn>Insert connection string here postgresql://user:password@netloc:port/dbname?param1=value1&amp;...</PostgresConn>
   </conns>
 </MyConfig>

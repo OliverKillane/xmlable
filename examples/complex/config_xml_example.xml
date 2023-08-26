@@ -7,7 +7,7 @@
         <tupleitem1>hello</tupleitem1>
       </key>
       <val>
-        <listitem>
+        <tuple>
           <tupleitem0>
             <dictitem>
               <key>3</key>
@@ -17,11 +17,11 @@
             </dictitem>
           </tupleitem0>
           <tupleitem1>
-            <setitem>false</setitem>
-            <setitem>true</setitem>
+            <bool>false</bool>
+            <bool>true</bool>
           </tupleitem1>
-        </listitem>
-        <listitem>
+        </tuple>
+        <tuple>
           <tupleitem0>
             <dictitem>
               <key>2</key>
@@ -31,9 +31,9 @@
             </dictitem>
           </tupleitem0>
           <tupleitem1>
-            <setitem>false</setitem>
+            <bool>false</bool>
           </tupleitem1>
-        </listitem>
+        </tuple>
       </val>
     </dictitem>
   </a>

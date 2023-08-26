@@ -10,3 +10,7 @@ updates:
       include: "scope"
     reviewers:
       - "oliverkillane"
+    groups:
+      python-packages:
+        patterns:
+          - "*"

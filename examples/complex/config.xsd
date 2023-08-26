@@ -22,7 +22,7 @@
                     <xs:complexType>
                       <!--This is a list-->
                       <xs:sequence>
-                        <xs:element name="listitem" minOccurs="0" maxOccurs="unbounded">
+                        <xs:element name="tuple" minOccurs="0" maxOccurs="unbounded">
                           <xs:complexType>
                             <xs:sequence>
                               <!--This is a tuple-->
@@ -53,7 +53,7 @@
                                 <xs:complexType>
                                   <!--This is a set-->
                                   <xs:sequence>
-                                    <xs:element name="setitem" type="xs:boolean" minOccurs="0" maxOccurs="unbounded"/>
+                                    <xs:element name="bool" type="xs:boolean" minOccurs="0" maxOccurs="unbounded"/>
                                   </xs:sequence>
                                 </xs:complexType>
                               </xs:element>

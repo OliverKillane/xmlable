@@ -8,7 +8,7 @@
         <xs:complexType>
           <!--This is a list-->
           <xs:sequence>
-            <xs:element name="listitem" type="xs:integer" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="int" type="xs:integer" minOccurs="0" maxOccurs="unbounded"/>
           </xs:sequence>
         </xs:complexType>
       </xs:element>

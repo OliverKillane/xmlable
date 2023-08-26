@@ -9,7 +9,7 @@
     </key>
     <val>
       <!--This is a list-->
-      <listitem>
+      <tuple>
         <!--This is a tuple-->
         <tupleitem0>
           <!--This is a dictionary-->
@@ -22,9 +22,9 @@
         </tupleitem0>
         <tupleitem1>
           <!--This is a set-->
-          <setitem>Fill me with an boolean</setitem>
+          <bool>Fill me with an boolean</bool>
         </tupleitem1>
-      </listitem>
+      </tuple>
     </val>
   </a>
 </Complex>

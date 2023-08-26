@@ -120,7 +120,7 @@ class ListObj(XObject):
     """
 
     item_xobject: XObject
-    list_elem_name: str = "listitem"
+    list_elem_name: str
     struct_name: str = "list"
 
     def xsd_out(
@@ -602,7 +602,9 @@ def gen_xobject(data_type: type, forward_dec: set[type]) -> XObject:
         t_name = typename(data_type)
         if t_name == "list":
             (item_type,) = get_args(data_type)
-            return ListObj(gen_xobject(item_type, forward_dec))
+            return ListObj(
+                gen_xobject(item_type, forward_dec), typename(item_type)
+            )
         elif t_name == "dict":
             key_type, val_type = get_args(data_type)
             return DictObj(
@@ -615,7 +617,9 @@ def gen_xobject(data_type: type, forward_dec: set[type]) -> XObject:
             )
         elif t_name == "set":
             (item_type,) = get_args(data_type)
-            return SetOBj(gen_xobject(item_type, forward_dec))
+            return SetOBj(
+                gen_xobject(item_type, forward_dec), typename(item_type)
+            )
         else:
             if is_xmlified(data_type):
                 forward_dec.add(data_type)

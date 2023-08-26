@@ -8,7 +8,7 @@
         <xmlSchema:complexType>
           <!--This is a list-->
           <xmlSchema:sequence>
-            <xmlSchema:element name="listitem" type="xmlSchema:integer" minOccurs="0" maxOccurs="unbounded"/>
+            <xmlSchema:element name="int" type="xmlSchema:integer" minOccurs="0" maxOccurs="unbounded"/>
           </xmlSchema:sequence>
         </xmlSchema:complexType>
       </xmlSchema:element>
