@@ -7,12 +7,12 @@
   </xs:simpleType>
   <xs:complexType name="MyConfig">
     <xs:sequence>
-      <xs:element name="foos" type="xs:integer"/>
-      <xs:element name="conns">
+      <xs:element name="Foos" type="xs:integer"/>
+      <xs:element name="Conns">
         <xs:complexType>
-          <!--This is a list-->
+          <!--This is a List-->
           <xs:sequence>
-            <xs:element name="listitem" type="PostgresConn" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="PostgresConn" type="PostgresConn" minOccurs="0" maxOccurs="unbounded"/>
           </xs:sequence>
         </xs:complexType>
       </xs:element>

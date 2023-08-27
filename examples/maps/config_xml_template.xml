@@ -1,22 +1,24 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <BigConfig>
-  <machine_ids>
+  <MachineIds>
     <!--This is a dictionary-->
-    <key>
-      <location>Fill me with an string</location>
-      <serv_name>Fill me with an string</serv_name>
-    </key>
-    <val>
-      <ip>Fill me with an string</ip>
-      <cores>Fill me with an integer</cores>
-      <org_owner>
-        <!--This is a union, the following variants are possible, only one can be present-->
-        <variantint>Fill me with an integer</variantint>
-        <variantNoneType>
-          <!--This is None-->
-        </variantNoneType>
-      </org_owner>
-    </val>
-  </machine_ids>
-  <show_logs>Fill me with an boolean</show_logs>
+    <Item>
+      <Key>
+        <Location>Fill me with an string</Location>
+        <ServName>Fill me with an string</ServName>
+      </Key>
+      <Val>
+        <Ip>Fill me with an string</Ip>
+        <Cores>Fill me with an integer</Cores>
+        <OrgOwner>
+          <!--This is a union, the following variants are possible, only one can be present-->
+          <Int>Fill me with an integer</Int>
+          <NoneType>
+            <!--This is None-->
+          </NoneType>
+        </OrgOwner>
+      </Val>
+    </Item>
+  </MachineIds>
+  <ShowLogs>Fill me with an boolean</ShowLogs>
 </BigConfig>

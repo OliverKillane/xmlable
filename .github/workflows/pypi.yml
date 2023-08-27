@@ -6,7 +6,7 @@ on:
       - master
 
 jobs:
-  build:
+  check:
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -17,13 +17,5 @@ jobs:
           python-version: "3.11"
       - name: Install Hatch
         run: pipx install hatch
-      - name: Test
-        run: hatch run check:test
-      - name: typecheck
-        run: hatch run check:typecheck
-      - name: lint
-        run: hatch run check:lint
-      - name: Build
-        run: hatch build
       - name: Publish
         run: hatch publish --user "__token__" --auth ${{ secrets.XMLABLE_TOKEN }}

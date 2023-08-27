@@ -12,18 +12,18 @@ class Config:
     show_logs: bool
 
 
-write_file("config.xsd", Config.xsd())
-write_file("config_xml_template.xml", Config.xml())
+write_xsd(THIS_DIR / "config.xsd", Config)
+write_xml_template(THIS_DIR / "config_xml_template.xml", Config)
 
 original = Config(
-    date="31/02/2023",  # no validation yet :(
+    date="31/02/2023",
     number_of_cores=48,
     codes=[101, 345, 42, 67],
     show_logs=False,
 )
-write_file("config_xml_example.xml", original.xml_value())
+write_xml_value(THIS_DIR / "config_xml_example.xml", original)
 
-read_config: Config = parse_file(Config, "config_xml_example.xml")
+read_config: Config = parse_file(Config, THIS_DIR / "config_xml_example.xml")
 
 assert read_config == original
 ```
@@ -112,7 +112,7 @@ For example:
 class GenericUnion:
     u: dict[int, float] | dict[int, str]
 
-GenericUnion(u={}) # which variant in the xml should {} have??
+GenericUnion(u={}) # which variant in the xml should {} have??named_
 ```
 
 In this case an error is raised
@@ -123,9 +123,12 @@ In this case an error is raised
 git clone # this project
 
 # Can use hatch to build, run
-hatch run check:lint
-hatch run check:test
-hatch run check:typecheck
+hatch run check:test      # run tests/
+hatch run check:lint      # check formatting
+hatch run check:typecheck # mypy for src/ and all examples
+
+hatch run auto:examplegen # regenerate the example code
+hatch run auto:lint       # format code
 
 # Alternatively can just create a normal env
 python3.11 -m venv .venv

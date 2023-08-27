@@ -8,7 +8,7 @@ Given a dataclass:
   a filled xml
 - Create a parser for parsing the xml
 """
-
+from humps import pascalize
 from dataclasses import fields, is_dataclass
 from typing import Any, dataclass_transform
 from lxml.objectify import ObjectifiedElement
@@ -58,7 +58,8 @@ def xmlify(cls: type) -> type:
         cls_name = typename(cls)
         forward_decs = {cls}
         meta_xobjects = [
-            (f, gen_xobject(f.type, forward_decs)) for f in fields(cls)
+            (pascalize(f.name), f, gen_xobject(f.type, forward_decs))
+            for f in fields(cls)
         ]
 
         class UserXObject(XObject):
@@ -78,7 +79,10 @@ def xmlify(cls: type) -> type:
             def xml_temp(self, name: str) -> _Element:
                 return with_children(
                     Element(name),
-                    [xobj.xml_temp(m.name) for m, xobj in meta_xobjects],
+                    [
+                        xobj.xml_temp(pascal_name)
+                        for pascal_name, _, xobj in meta_xobjects
+                    ],
                 )
 
             def xml_out(self, name: str, val: Any, ctx: XErrorCtx) -> _Element:
@@ -86,26 +90,28 @@ def xmlify(cls: type) -> type:
                     Element(name),
                     [
                         xobj.xml_out(
-                            m.name,
+                            pascal_name,
                             get(val, m.name),
-                            ctx.next(m.name),
+                            ctx.next(pascal_name),
                         )
-                        for m, xobj in meta_xobjects
+                        for pascal_name, m, xobj in meta_xobjects
                     ],
                 )
 
             def xml_in(self, obj: ObjectifiedElement, ctx: XErrorCtx) -> Any:
                 parsed: dict[str, Any] = {}
-                for m, xobj in meta_xobjects:
-                    if (m_obj := get(obj, m.name)) is not None:
-                        parsed[m.name] = xobj.xml_in(m_obj, ctx.next(m.name))
+                for pascal_name, m, xobj in meta_xobjects:
+                    if (m_obj := get(obj, pascal_name)) is not None:
+                        parsed[m.name] = xobj.xml_in(
+                            m_obj, ctx.next(pascal_name)
+                        )
                     else:
                         raise ErrorTypes.NonMemberTag(ctx, cls, obj.tag, m.name)
                 return cls(**parsed)
 
         cls_xobject = UserXObject()
 
-        # JUSTIFY: Why ar xsd forward & dependencies not part of xobject?
+        # JUSTIFY: Why are xsd forward & dependencies not part of xobject?
         #          - xobject covers the use (not forward decs)
         #          - we want to present error messages to the user containing
         #            their types, so xsd dependencies are in terms of python
@@ -119,8 +125,8 @@ def xmlify(cls: type) -> type:
                 with_children(
                     Element(f"{XMLSchema}sequence"),
                     [
-                        xobj.xsd_out(m.name, attribs={}, add_ns=add_ns)
-                        for m, xobj in meta_xobjects
+                        xobj.xsd_out(pascal_name, attribs={}, add_ns=add_ns)
+                        for pascal_name, m, xobj in meta_xobjects
                     ],
                 ),
             )

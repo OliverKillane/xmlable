@@ -1,30 +1,42 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <MyPythonApp>
-  <mainconf>
-    <debug_logs>Fill me with an boolean</debug_logs>
-    <metrics_url>Fill me with an string</metrics_url>
-    <control_timeout>Fill me with an integer</control_timeout>
-    <control_port>Fill me with an integer</control_port>
-  </mainconf>
-  <sessions>
+  <Mainconf>
+    <DebugLogs>Fill me with an boolean</DebugLogs>
+    <MetricsUrl>Fill me with an string</MetricsUrl>
+    <ControlTimeout>Fill me with an integer</ControlTimeout>
+    <ControlPort>Fill me with an integer</ControlPort>
+  </Mainconf>
+  <NamedSessions>
     <!--This is a dictionary-->
-    <key>Fill me with an string</key>
-    <val>
-      <id>Fill me with an integer</id>
-      <app_name>Fill me with an string</app_name>
-      <conn>Insert connection string here proto:xxx.xxx.xxx.xxx:pppp</conn>
-    </val>
-  </sessions>
-  <name_to_user>
+    <Item>
+      <Key>Fill me with an string</Key>
+      <Val>
+        <Id>Fill me with an integer</Id>
+        <AppName>Fill me with an string</AppName>
+        <Conn>Insert connection string here proto:xxx.xxx.xxx.xxx:pppp</Conn>
+      </Val>
+    </Item>
+  </NamedSessions>
+  <ExtraSessions>
+    <!--This is a List-->
+    <SessionConfig>
+      <Id>Fill me with an integer</Id>
+      <AppName>Fill me with an string</AppName>
+      <Conn>Insert connection string here proto:xxx.xxx.xxx.xxx:pppp</Conn>
+    </SessionConfig>
+  </ExtraSessions>
+  <NameToUser>
     <!--This is a dictionary-->
-    <key>Fill me with an string</key>
-    <val>
-      <!--This is a union, the following variants are possible, only one can be present-->
-      <variantint>Fill me with an integer</variantint>
-      <variantUserConfig>
-        <name>Fill me with an string</name>
-        <auth_token>Fill me with an string</auth_token>
-      </variantUserConfig>
-    </val>
-  </name_to_user>
+    <Item>
+      <Key>Fill me with an string</Key>
+      <Val>
+        <!--This is a union, the following variants are possible, only one can be present-->
+        <Int>Fill me with an integer</Int>
+        <UserConfig>
+          <Name>Fill me with an string</Name>
+          <AuthToken>Fill me with an string</AuthToken>
+        </UserConfig>
+      </Val>
+    </Item>
+  </NameToUser>
 </MyPythonApp>

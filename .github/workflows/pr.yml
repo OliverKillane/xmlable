@@ -4,9 +4,12 @@ on:
   pull_request:
     branches:
       - master
+  push:
+    branches:
+      - master
 
 jobs:
-  build:
+  check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -17,9 +20,19 @@ jobs:
         run: pipx install hatch
       - name: Test
         run: hatch run check:test
-      - name: typecheck
+      - name: Typecheck
         run: hatch run check:typecheck
-      - name: lint
+      - name: Lint
         run: hatch run check:lint
+      - name: Regenerate Examples
+        run: hatch run auto:examplegen
+      - name: Check Changes
+        id: check-changes
+        uses: mskri/check-uncommitted-changes-action@v1.0.1
+      - name: Show changes
+        if: steps.check-changes.outputs.changes != ''
+        run: |
+          echo "After regenerating examples there are changes, please commit updated examples"
+          exit 1
       - name: Build
         run: hatch build

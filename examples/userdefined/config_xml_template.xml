@@ -1,8 +1,8 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <MyConfig>
-  <foos>Fill me with an integer</foos>
-  <conns>
-    <!--This is a list-->
-    <listitem>Insert connection string here postgresql://user:password@netloc:port/dbname?param1=value1&amp;...</listitem>
-  </conns>
+  <Foos>Fill me with an integer</Foos>
+  <Conns>
+    <!--This is a List-->
+    <PostgresConn>Insert connection string here postgresql://user:password@netloc:port/dbname?param1=value1&amp;...</PostgresConn>
+  </Conns>
 </MyConfig>

@@ -2,17 +2,17 @@
 <xmlSchema:schema xmlns:xmlSchema="http://www.w3.org/2001/XMLSchema" id="Config" elementFormDefault="qualified">
   <xmlSchema:complexType name="Config">
     <xmlSchema:sequence>
-      <xmlSchema:element name="date" type="xmlSchema:string"/>
-      <xmlSchema:element name="number_of_cores" type="xmlSchema:integer"/>
-      <xmlSchema:element name="codes">
+      <xmlSchema:element name="Date" type="xmlSchema:string"/>
+      <xmlSchema:element name="NumberOfCores" type="xmlSchema:integer"/>
+      <xmlSchema:element name="Codes">
         <xmlSchema:complexType>
-          <!--This is a list-->
+          <!--This is a List-->
           <xmlSchema:sequence>
-            <xmlSchema:element name="listitem" type="xmlSchema:integer" minOccurs="0" maxOccurs="unbounded"/>
+            <xmlSchema:element name="Int" type="xmlSchema:integer" minOccurs="0" maxOccurs="unbounded"/>
           </xmlSchema:sequence>
         </xmlSchema:complexType>
       </xmlSchema:element>
-      <xmlSchema:element name="show_logs" type="xmlSchema:boolean"/>
+      <xmlSchema:element name="ShowLogs" type="xmlSchema:boolean"/>
     </xmlSchema:sequence>
   </xmlSchema:complexType>
   <xmlSchema:element name="Config" type="Config"/>

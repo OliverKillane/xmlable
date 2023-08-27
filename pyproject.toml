@@ -4,13 +4,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "xmlable"
-version = "1.2.2"
+version = "2.0.0"
 authors = [
-  { name="Oliver Killane", email="oliverkillane.business@gmail.com" },
+    { name = "Oliver Killane", email = "oliverkillane.business@gmail.com" },
 ]
 description = "A decorator for generating xsd, xml and parsers from dataclasses"
 readme = "README.md"
-license = { file = "LICENSE"}
+license = { file = "LICENSE" }
 keywords = ["xml", "xmlschema", "xsd", "lxml"]
 requires-python = ">=3.11"
 classifiers = [
@@ -22,6 +22,7 @@ dependencies = [
     "lxml==4.9.3",
     "lxml-stubs==0.4.0",
     "termcolor==2.3.0",
+    "pyhumps==3.8.0",
 ]
 
 [project.urls]
@@ -30,30 +31,19 @@ dependencies = [
 "Source" = "https://github.com/OliverKillane/xmlable"
 
 [project.optional-dependencies]
-dev = [
-    "black==23.7.0",
-    "mypy==1.5.1",
-    "pytest==7.4.0",
-]
+dev = ["black==23.7.0", "mypy==1.5.1", "pytest==7.4.0"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "-ra -q"
-pythonpath = [
-    "src",
-]
-testpaths = [
-    "tests",
-]
+pythonpath = ["src"]
+testpaths = ["tests"]
 
 [tool.mypy]
 python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
-packages = [
-    'src',
-    'tests',
-]
+packages = ['src', 'tests']
 
 [tool.black]
 line-length = 80
@@ -78,7 +68,14 @@ exclude = '''(
 [tool.hatch.envs.check]
 features = ["dev"]
 
+[tool.hatch.envs.auto]
+features = ["dev"]
+
 [tool.hatch.envs.check.scripts]
 test = "pytest"
+lint = "black . --check"
+typecheck = "mypy src --exclude examples/ && for f in examples/*/main.py; do mypy $f; done"
+
+[tool.hatch.envs.auto.scripts]
+examplegen = "for f in examples/*/main.py; do python $f; done"
 lint = "black ."
-typecheck = "mypy src --exclude examples/"
