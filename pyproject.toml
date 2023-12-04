@@ -21,7 +21,7 @@ classifiers = [
 dependencies = [
     "lxml==4.9.3",
     "lxml-stubs==0.4.0",
-    "termcolor==2.3.0",
+    "termcolor==2.4.0",
     "pyhumps==3.8.0",
 ]
 
@@ -31,7 +31,7 @@ dependencies = [
 "Source" = "https://github.com/OliverKillane/xmlable"
 
 [project.optional-dependencies]
-dev = ["black==23.10.1", "mypy==1.6.1", "pytest==7.4.2"]
+dev = ["black==23.11.0", "mypy==1.7.1", "pytest==7.4.3"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
