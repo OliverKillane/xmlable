@@ -8,6 +8,7 @@ Given a dataclass:
   a filled xml
 - Create a parser for parsing the xml
 """
+
 from humps import pascalize
 from dataclasses import fields, is_dataclass
 from typing import Any, dataclass_transform

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "xmlable"
-version = "2.0.1"
+version = "2.0.2"
 authors = [
     { name = "Oliver Killane", email = "oliverkillane.business@gmail.com" },
 ]
@@ -19,8 +19,8 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "lxml==4.9.3",
-    "lxml-stubs==0.4.0",
+    "lxml==5.2.1",
+    "lxml-stubs==0.5.1",
     "termcolor==2.4.0",
     "pyhumps==3.8.0",
 ]
@@ -31,7 +31,7 @@ dependencies = [
 "Source" = "https://github.com/OliverKillane/xmlable"
 
 [project.optional-dependencies]
-dev = ["black==23.11.0", "mypy==1.7.1", "pytest==7.4.3"]
+dev = ["black==24.4.0", "mypy==1.9.0", "pytest==8.1.1"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"

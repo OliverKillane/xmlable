@@ -3,6 +3,7 @@ Colourful & descriptive errors for xmlable
 - Clear messages
 - Trace for parsing
 """
+
 from dataclasses import dataclass
 from typing import Any, Iterable
 from termcolor import colored
