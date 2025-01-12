@@ -4,6 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "xmlable"
+dynamic = ["version"]
 authors = [
     { name = "Oliver Killane", email = "oliverkillane.business@gmail.com" },
 ]
