@@ -5,3 +5,5 @@ from xmlable._io import (
     write_xml_template,
     write_xsd,
 )
+
+__version__ = "2.0.2"

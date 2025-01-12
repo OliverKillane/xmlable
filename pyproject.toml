@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "xmlable"
-version = "2.0.2"
+dynamic = ["version"]
 authors = [
     { name = "Oliver Killane", email = "oliverkillane.business@gmail.com" },
 ]
@@ -64,6 +64,9 @@ exclude = '''(
     | /__pycache__/
     | /\.pytest_cache/
 )'''
+
+[tool.hatch.version]
+path = "src/xmlable/__init__.py"
 
 [tool.hatch.envs.check]
 features = ["dev"]
