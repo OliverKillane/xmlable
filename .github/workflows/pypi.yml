@@ -1,15 +1,20 @@
 name: xmlable pypi publish
 
 on:
-  push:
-    branches:
-      - master
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: "Version bump type (major, minor, patch)"
+        required: true
+        default: "patch"
 
 jobs:
   check:
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     environment:
       name: pypi
+
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -17,7 +22,18 @@ jobs:
           python-version: "3.11"
       - name: Install Hatch
         run: pipx install hatch
+
+      - name: Bump Version
+        run: |
+          hatch version ${{ github.event.inputs.version_bump }}
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add --all
+          git commit -m "Bump version to $(hatch version)"
+          git push origin HEAD
+
       - name: Build
         run: hatch build
+
       - name: Publish
         run: hatch publish --user "__token__" --auth ${{ secrets.XMLABLE_TOKEN }}
