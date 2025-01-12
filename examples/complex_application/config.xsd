@@ -1,5 +1,13 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" id="MyPythonApp" elementFormDefault="qualified">
+  <xs:complexType name="Inspect">
+    <xs:sequence>
+      <xs:element name="DebugLogs" type="xs:boolean"/>
+      <xs:element name="MetricsUrl" type="xs:string"/>
+      <xs:element name="ControlTimeout" type="xs:integer"/>
+      <xs:element name="ControlPort" type="xs:integer"/>
+    </xs:sequence>
+  </xs:complexType>
   <xs:simpleType name="IPv4Conn">
     <xs:restriction base="xs:string">
       <xs:pattern value="(.*):(\d*)\.(\d*)\.(\d*)\.(\d*):(\d*)"/>
@@ -10,14 +18,6 @@
       <xs:element name="Id" type="xs:integer"/>
       <xs:element name="AppName" type="xs:string"/>
       <xs:element name="Conn" type="IPv4Conn"/>
-    </xs:sequence>
-  </xs:complexType>
-  <xs:complexType name="Inspect">
-    <xs:sequence>
-      <xs:element name="DebugLogs" type="xs:boolean"/>
-      <xs:element name="MetricsUrl" type="xs:string"/>
-      <xs:element name="ControlTimeout" type="xs:integer"/>
-      <xs:element name="ControlPort" type="xs:integer"/>
     </xs:sequence>
   </xs:complexType>
   <xs:complexType name="UserConfig">

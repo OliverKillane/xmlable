@@ -6,8 +6,10 @@ Includes common helper functions for this project
 - typenames
 """
 
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, TypeVar, TypeAlias, Type, Iterable
+from types import GenericAlias
 
+AnyType: TypeAlias = Type | GenericAlias
 
 T = TypeVar("T")
 
@@ -47,8 +49,15 @@ def firstkey(d: dict[X, Y], val: Y) -> X | None:
         return None
 
 
-def typename(t: type) -> str:
+def typename(t: AnyType) -> str:
     if t is None:
         return "None"
     else:
         return t.__name__
+
+
+Z = TypeVar("Z")
+
+
+def ordered_iter(types: Iterable[Z]) -> list[Z]:
+    return sorted(list(types), key=str)

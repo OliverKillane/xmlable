@@ -9,7 +9,7 @@ from typing import Any, Iterable
 from termcolor import colored
 from termcolor.termcolor import Color
 
-from xmlable._utils import typename
+from xmlable._utils import typename, AnyType
 
 
 def trace_note(trace: list[str], arrow_c: Color, node_c: Color):
@@ -146,8 +146,8 @@ class ErrorTypes:
     def InvalidVariant(
         ctx: XErrorCtx,
         name: str,
-        expected_types: list[type],
-        found_type: type | None,
+        expected_types: list[AnyType],
+        found_type: AnyType | None,
         found_value: Any,
     ) -> XError:
         types = " | ".join(map(str, expected_types))
@@ -188,7 +188,7 @@ class ErrorTypes:
         )
 
     @staticmethod
-    def NotADataclass(cls: type) -> XError:
+    def NotADataclass(cls: AnyType) -> XError:
         cls_name: str = typename(cls)
         return XError(
             short="Non-Dataclass",
@@ -199,7 +199,7 @@ class ErrorTypes:
         )
 
     @staticmethod
-    def ReservedAttribute(cls: type, attr_name: str) -> XError:
+    def ReservedAttribute(cls: AnyType, attr_name: str) -> XError:
         cls_name: str = typename(cls)
         return XError(
             short=f"Reserved Attribute",
@@ -209,7 +209,7 @@ class ErrorTypes:
         )
 
     @staticmethod
-    def CommentAttribute(cls: type) -> XError:
+    def CommentAttribute(cls: AnyType) -> XError:
         cls_name: str = typename(cls)
         return XError(
             short=f"Comment Attribute",
@@ -219,7 +219,9 @@ class ErrorTypes:
         )
 
     @staticmethod
-    def NonMemberTag(ctx: XErrorCtx, cls: type, tag: str, name: str) -> XError:
+    def NonMemberTag(
+        ctx: XErrorCtx, cls: AnyType, tag: str, name: str
+    ) -> XError:
         cls_name: str = typename(cls)
         return XError(
             short="Non member tag",
@@ -230,7 +232,7 @@ class ErrorTypes:
 
     @staticmethod
     def MissingAttribute(
-        cls: type, required_attrs: set[str], missing_attr: str
+        cls: AnyType, required_attrs: set[str], missing_attr: str
     ) -> XError:
         cls_name: str = typename(cls)
         return XError(
@@ -241,7 +243,7 @@ class ErrorTypes:
         )
 
     @staticmethod
-    def DependencyCycle(cycle: list[type]) -> XError:
+    def DependencyCycle(cycle: list[AnyType]) -> XError:
         return XError(
             short="Dependency Cycle in XSD",
             what=f"There is a cycle: {'<-'.join(map(str, cycle))}",
@@ -249,7 +251,7 @@ class ErrorTypes:
         )
 
     @staticmethod
-    def NotXmlified(cls: type) -> XError:
+    def NotXmlified(cls: AnyType) -> XError:
         cls_name: str = typename(cls)
         return XError(
             short="Not Xmlified",

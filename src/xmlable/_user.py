@@ -7,6 +7,7 @@ The IXmlify interface
 from abc import ABC, abstractmethod
 from lxml.etree import _Element
 from xmlable._xobject import XObject
+from xmlable._utils import AnyType
 
 
 class IXmlify(ABC):
@@ -54,7 +55,7 @@ class IXmlify(ABC):
 
     @staticmethod
     @abstractmethod
-    def xsd_dependencies() -> set[type]:
+    def xsd_dependencies() -> set[AnyType]:
         """
         The user classes that need to be before this first
 

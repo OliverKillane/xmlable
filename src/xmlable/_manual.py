@@ -8,25 +8,25 @@ from typing import Any
 from lxml.etree import _Element, Element, _ElementTree, ElementTree
 from lxml.objectify import ObjectifiedElement
 
-from xmlable._utils import typename
+from xmlable._utils import typename, AnyType, ordered_iter
 from xmlable._lxml_helpers import with_children, XMLSchema
 from xmlable._errors import XError, XErrorCtx, ErrorTypes
 
 
-def validate_manual_class(cls: type):
+def validate_manual_class(cls: AnyType):
     attrs = {"get_xobject", "xsd_forward", "xsd_dependencies"}
     for attr in attrs:
         if not hasattr(cls, attr):
             raise ErrorTypes.MissingAttribute(cls, attrs, attr)
 
 
-def type_cycle(from_type: type) -> list[type]:
+def type_cycle(from_type: AnyType) -> list[AnyType]:
     # INV: it is an xmlified type for a user define structure
-    cycle: list[type] = []
+    cycle: list[AnyType] = []
 
-    def visit_dep(curr: type) -> bool:
+    def visit_dep(curr: AnyType) -> bool:
         if curr == from_type or any(
-            visit_dep(dep) for dep in curr.xsd_dependencies()  # type: ignore[attr-defined]
+            visit_dep(dep) for dep in ordered_iter(curr.xsd_dependencies())  # type: ignore[attr-defined]
         ):
             cycle.append(curr)
             return True
@@ -71,15 +71,17 @@ def manual_xmlify(cls: type) -> type:
             imports: dict[str, str] = {},
         ) -> _ElementTree:
             # Get dependencies (user classes that need to be declared before)
-            visited: set[type] = set()
-            dec_order: list[type] = []
+            visited: set[AnyType] = set()
+            dec_order: list[AnyType] = []
 
-            def toposort(curr: type, visited: set[type], dec_order: list[type]):
+            def toposort(
+                curr: AnyType, visited: set[AnyType], dec_order: list[AnyType]
+            ):
                 if curr in visited:
                     raise ErrorTypes.DependencyCycle(type_cycle(curr))
                 visited.add(curr)
                 deps = curr.xsd_dependencies()  # type: ignore[attr-defined]
-                for d in deps:
+                for d in ordered_iter(deps):
                     if d not in visited:
                         toposort(d, visited, dec_order)
                 dec_order.append(curr)
