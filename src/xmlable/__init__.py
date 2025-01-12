@@ -7,4 +7,3 @@ from xmlable._io import (
 )
 
 __version__ = "2.0.2"
-
