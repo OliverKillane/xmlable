@@ -1,11 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" id="BigConfig" elementFormDefault="qualified">
-  <xs:complexType name="MachineID">
-    <xs:sequence>
-      <xs:element name="Location" type="xs:string"/>
-      <xs:element name="ServName" type="xs:string"/>
-    </xs:sequence>
-  </xs:complexType>
   <xs:complexType name="MachineConfig">
     <xs:sequence>
       <xs:element name="Ip" type="xs:string"/>
@@ -21,6 +15,12 @@
           </xs:sequence>
         </xs:complexType>
       </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="MachineID">
+    <xs:sequence>
+      <xs:element name="Location" type="xs:string"/>
+      <xs:element name="ServName" type="xs:string"/>
     </xs:sequence>
   </xs:complexType>
   <xs:complexType name="BigConfig">

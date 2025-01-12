@@ -6,7 +6,7 @@ Includes common helper functions for this project
 - typenames
 """
 
-from typing import Any, Callable, TypeVar, TypeAlias, Type
+from typing import Any, Callable, TypeVar, TypeAlias, Type, Iterable
 from types import GenericAlias
 
 AnyType: TypeAlias = Type | GenericAlias
@@ -54,3 +54,10 @@ def typename(t: AnyType) -> str:
         return "None"
     else:
         return t.__name__
+
+
+Z = TypeVar("Z")
+
+
+def ordered_iter(types: Iterable[Z]) -> list[Z]:
+    return sorted(list(types), key=str)

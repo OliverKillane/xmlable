@@ -8,7 +8,7 @@ from typing import Any
 from lxml.etree import _Element, Element, _ElementTree, ElementTree
 from lxml.objectify import ObjectifiedElement
 
-from xmlable._utils import typename, AnyType
+from xmlable._utils import typename, AnyType, ordered_iter
 from xmlable._lxml_helpers import with_children, XMLSchema
 from xmlable._errors import XError, XErrorCtx, ErrorTypes
 
@@ -26,7 +26,7 @@ def type_cycle(from_type: AnyType) -> list[AnyType]:
 
     def visit_dep(curr: AnyType) -> bool:
         if curr == from_type or any(
-            visit_dep(dep) for dep in curr.xsd_dependencies()  # type: ignore[attr-defined]
+            visit_dep(dep) for dep in ordered_iter(curr.xsd_dependencies())  # type: ignore[attr-defined]
         ):
             cycle.append(curr)
             return True
@@ -81,7 +81,7 @@ def manual_xmlify(cls: type) -> type:
                     raise ErrorTypes.DependencyCycle(type_cycle(curr))
                 visited.add(curr)
                 deps = curr.xsd_dependencies()  # type: ignore[attr-defined]
-                for d in deps:
+                for d in ordered_iter(deps):
                     if d not in visited:
                         toposort(d, visited, dec_order)
                 dec_order.append(curr)
