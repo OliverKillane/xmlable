@@ -10,9 +10,10 @@ from types import NoneType, UnionType
 from lxml.objectify import ObjectifiedElement
 from lxml.etree import Element, Comment, _Element
 from abc import ABC, abstractmethod
-from typing import Any, Callable, get_args
+from typing import Any, Callable, Type, get_args, TypeAlias, cast
+from types import GenericAlias
 
-from xmlable._utils import get, typename, firstkey
+from xmlable._utils import get, typename, firstkey, AnyType
 from xmlable._errors import XErrorCtx, ErrorTypes
 from xmlable._lxml_helpers import (
     with_text,
@@ -437,7 +438,7 @@ class DictObj(XObject):
         return parsed
 
 
-def resolve_type(v: Any) -> type | None:
+def resolve_type(v: Any) -> AnyType:
     """Determine the type of some value, using primitive types
     - If empty container, only provide top container type
     INV: only generic types for v are {tuple, list, dict, set}
@@ -463,8 +464,8 @@ def resolve_type(v: Any) -> type | None:
 class UnionObj(XObject):
     """A variant, can be one of several different types"""
 
-    xobjects: dict[type, XObject]
-    elem_gen: Callable[[type], str] = lambda t: pascalize(typename(t))
+    xobjects: dict[AnyType, XObject]
+    elem_gen: Callable[[AnyType], str] = lambda t: pascalize(typename(t))
 
     def xsd_out(
         self,
@@ -508,7 +509,7 @@ class UnionObj(XObject):
     def xml_out(self, name: str, val: Any, ctx: XErrorCtx) -> _Element:
         t = resolve_type(val)
 
-        if t is not None and (val_xobj := self.xobjects.get(t)) is not None:
+        if (val_xobj := self.xobjects.get(t)) is not None:
             variant_name = self.elem_gen(t)
             return with_child(
                 Element(name),
@@ -577,9 +578,9 @@ def is_xmlified(cls):
     )
 
 
-def gen_xobject(data_type: type, forward_dec: set[type]) -> XObject:
+def gen_xobject(data_type: AnyType, forward_dec: set[AnyType]) -> XObject:
     basic_types: dict[
-        type, tuple[str, Callable[[Any], str], Callable[[Any], bool]]
+        AnyType, tuple[str, Callable[[Any], str], Callable[[Any], bool]]
     ] = {
         int: ("integer", str, lambda d: type(d) == int),
         str: ("string", str, lambda d: type(d) == str),
@@ -593,7 +594,10 @@ def gen_xobject(data_type: type, forward_dec: set[type]) -> XObject:
 
     if (basic_entry := basic_types.get(data_type)) is not None:
         type_str, convert_fn, validate_fn = basic_entry
-        return BasicObj(type_str, convert_fn, validate_fn, data_type)
+        # NOTE: here was can pass the parse_fn as the data type, as the name is
+        #       also a constructor. (e.g. `int` -> `int("23") == 32`)
+        parse_fn = cast(Callable[[ObjectifiedElement], Any], data_type)
+        return BasicObj(type_str, convert_fn, validate_fn, parse_fn)
     elif isinstance(data_type, NoneType) or data_type == NoneType:
         # NOTE: Python typing cringe: None can be both a type and a value
         #       (even when within a type hint!)

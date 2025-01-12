@@ -10,7 +10,7 @@ from xmlable._errors import XError, XErrorCtx
 from xmlable._xobject import XObject
 from xmlable._user import IXmlify
 from xmlable._manual import manual_xmlify
-from xmlable._utils import firstkey
+from xmlable._utils import firstkey, AnyType
 
 import re
 
@@ -127,5 +127,5 @@ class PostgresConn(IXmlify):
         )
 
     @staticmethod
-    def xsd_dependencies() -> set[type]:
+    def xsd_dependencies() -> set[AnyType]:
         return {PostgresConn}

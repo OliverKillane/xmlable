@@ -11,18 +11,18 @@ Given a dataclass:
 
 from humps import pascalize
 from dataclasses import fields, is_dataclass
-from typing import Any, dataclass_transform
+from typing import Any, dataclass_transform, cast
 from lxml.objectify import ObjectifiedElement
 from lxml.etree import Element, _Element
 
-from xmlable._utils import get, typename
+from xmlable._utils import get, typename, AnyType
 from xmlable._errors import XError, XErrorCtx, ErrorTypes
 from xmlable._manual import manual_xmlify
 from xmlable._lxml_helpers import with_children, with_child, XMLSchema
 from xmlable._xobject import XObject, gen_xobject
 
 
-def validate_class(cls: type):
+def validate_class(cls: AnyType):
     """
     Validate tha the class can be xmlified
     - Must be a dataclass
@@ -52,14 +52,18 @@ def validate_class(cls: type):
 
 
 @dataclass_transform()
-def xmlify(cls: type) -> type:
+def xmlify(cls: type) -> AnyType:
     try:
         validate_class(cls)
 
         cls_name = typename(cls)
-        forward_decs = {cls}
+        forward_decs = cast(set[AnyType], {cls})
         meta_xobjects = [
-            (pascalize(f.name), f, gen_xobject(f.type, forward_decs))
+            (
+                pascalize(f.name),
+                f,
+                gen_xobject(cast(AnyType, f.type), forward_decs),
+            )
             for f in fields(cls)
         ]
 
@@ -132,7 +136,7 @@ def xmlify(cls: type) -> type:
                 ),
             )
 
-        def xsd_dependencies() -> set[type]:
+        def xsd_dependencies() -> set[AnyType]:
             return forward_decs
 
         def get_xobject():
