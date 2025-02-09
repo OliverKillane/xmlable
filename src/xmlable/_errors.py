@@ -1,5 +1,5 @@
 """
-Colourful & descriptive errors for xmlable 
+Colourful & descriptive errors for xmlable
 - Clear messages
 - Trace for parsing
 """

@@ -1,6 +1,6 @@
-""" 
-The @manual_xmlify decorator used to add the .xsd, .xml, .xml_value and .parse 
-methods to a class that already has .xsd_dependencies, .xsd_forward and 
+"""
+The @manual_xmlify decorator used to add the .xsd, .xml, .xml_value and .parse
+methods to a class that already has .xsd_dependencies, .xsd_forward and
 .get_xobject
 """
 

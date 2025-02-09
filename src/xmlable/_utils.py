@@ -1,4 +1,4 @@
-""" 
+"""
 Basic Utilities
 Includes common helper functions for this project
 - Handling optionals

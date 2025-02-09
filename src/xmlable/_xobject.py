@@ -1,7 +1,7 @@
-""" XObjects
+"""XObjects
 XObjects are an intermediate representation for python types -> xsd/xml
 - Produced by @xmlify decorated classes, and by gen_xobject
-- Associated xsd, xml and parsing 
+- Associated xsd, xml and parsing
 """
 
 from humps import pascalize
