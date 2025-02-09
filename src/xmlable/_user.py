@@ -1,4 +1,4 @@
-""" 
+"""
 The IXmlify interface
 - Contains the methods needed to make get_xobject work
 - Allows type checking of user's implementations

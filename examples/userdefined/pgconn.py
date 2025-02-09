@@ -15,7 +15,7 @@ from xmlable._utils import firstkey, AnyType
 import re
 
 CONN_STR = "postgresql://user:password@netloc:port/dbname?param1=value1&..."
-CONN_PATTERN = "postgresql:\/\/([^:]*):([^@]*)?@([^:]*):(\d+)\/([^\?]*)(\??.*)"
+CONN_PATTERN = r"postgresql:\/\/([^:]*):([^@]*)?@([^:]*):(\d+)\/([^\?]*)(\??.*)"
 
 
 @manual_xmlify

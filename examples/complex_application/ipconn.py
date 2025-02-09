@@ -15,7 +15,7 @@ from xmlable._utils import firstkey, AnyType
 import re
 
 CONN_STR = "proto:xxx.xxx.xxx.xxx:pppp"
-CONN_PATTERN = "(.*):(\d*)\.(\d*)\.(\d*)\.(\d*):(\d*)"
+CONN_PATTERN = r"(.*):(\d*)\.(\d*)\.(\d*)\.(\d*):(\d*)"
 
 
 @manual_xmlify

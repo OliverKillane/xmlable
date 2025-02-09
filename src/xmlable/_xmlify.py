@@ -1,4 +1,4 @@
-""" XMLable
+"""XMLable
 A decorator to allow creation of xml config based on python dataclasses
 
 Given a dataclass:
