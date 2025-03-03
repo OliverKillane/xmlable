@@ -31,7 +31,7 @@ dependencies = [
 "Source" = "https://github.com/OliverKillane/xmlable"
 
 [project.optional-dependencies]
-dev = ["black==25.1.0", "mypy==1.15.0", "pytest==8.3.4"]
+dev = ["black==25.1.0", "mypy==1.15.0", "pytest==8.3.5"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
